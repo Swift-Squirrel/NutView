@@ -45,7 +45,7 @@ struct FruitParser {
         tokens.forEach { (token) in
             switch token["id"].stringValue {
             case "title":
-                let expr = parse(rawExpression: token["expression"])
+                let expr = parse(expression: token["expression"])
                 head.append(TitleToken(expression: expr, line: token["line"].intValue))
             default:
                 break

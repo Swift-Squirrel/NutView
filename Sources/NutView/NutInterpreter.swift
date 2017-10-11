@@ -152,7 +152,7 @@ extension NutInterpreter {
 // Head parsing
 extension NutInterpreter {
     fileprivate func parse(title: TitleToken) throws -> String {
-        let expr = try parse(rawExpression: title.expression)
+        let expr = try parse(expression: title.expression)
         return "<title>\(expr)</title>"
     }
 }

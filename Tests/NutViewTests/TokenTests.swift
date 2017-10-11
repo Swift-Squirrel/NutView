@@ -319,14 +319,14 @@ class TokenTests: XCTestCase {
     }
 
     func testTitle() {
-        let token = TitleToken(expression: RawExpressionToken(infix: "title", line: 14), line: 14)
+        let token = TitleToken(expression: ExpressionToken(infix: "title", line: 14), line: 14)
 
         XCTAssert(token.expression.infix == "title")
         XCTAssert(token.id == "title")
         XCTAssert(token.line == 14)
         let serialized = JSON(from: token.serialized)
         let expected = try! JSON(json: """
-            {"id":"title","expression":{"infix":"title","id":"raw expression","line":14},"line":14}
+            {"id":"title","expression":{"infix":"title","id":"expression","line":14},"line":14}
             """)
         XCTAssertEqual(serialized, expected)
     }

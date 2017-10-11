@@ -372,9 +372,9 @@ struct TitleToken: NutHeadProtocol {
 
     let line: Int
 
-    let expression: RawExpressionToken
+    let expression: ExpressionToken
 
-    init(expression: RawExpressionToken, line: Int) {
+    init(expression: ExpressionToken, line: Int) {
         self.line = line
         self.expression = expression
     }

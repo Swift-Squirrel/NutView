@@ -185,7 +185,11 @@ class NutParser: NutParserProtocol {
                         tokens.append(TextToken(value: text))
                         tokens.append(EndBlockToken(line: line))
                     } else {
-                        separated[index - 1] += "\\" + current
+                        if current.first == "\\" {
+                            separated[index - 1] += current
+                        } else {
+                            separated[index - 1] += "\\" + current
+                        }
                         separated[index] = ""
                     }
                 }
@@ -543,7 +547,7 @@ extension NutParser {
         let stringIndex = text.index(text.startIndex, offsetBy: 5)
         let text = String(text[stringIndex...])
         let res = try parseExpression(text: text, line: line)
-        if let expr = res.last! as? RawExpressionToken {
+        if let expr = res.last! as? ExpressionToken {
             let titleToken = TitleToken(expression: expr, line: line)
             if res.count == 2 {
                 return [res[0], titleToken]
@@ -780,7 +784,7 @@ extension NutParser {
         expression.removeLast()
         expression.removeFirst()
         let text = String(text[stringIndex...])
-        let expressionToken = RawExpressionToken(infix: expression, line: line)
+        let expressionToken = ExpressionToken(infix: expression, line: line)
         if text == "" {
             return [expressionToken]
         }

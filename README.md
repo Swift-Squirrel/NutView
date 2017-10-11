@@ -73,10 +73,10 @@ Commands starts with **\\** symbol. You can escape \\ symbol with \\\\
 |Name|Syntax|Semantic|
 |:--|:--|:--|
 |Expression|`\(<expression>)`| Evaluates expression in parentheses and escapes html characters|
-|Raw expression| `\RawExpression(<expression>)`| Evalutes expression|
+|Raw expression| `\RawValue(<expression>)`| Evalutes expression|
 |Block end|`\}`|Indicates block end in if, for statements|
-|If<br> Elseif<br> Else|`\if <expression> {`<br>`\} elseif <expression> {` <br>`\} else \{` | If expression is `true` run commands in given block otherwise run elseif\|else block if exists|
-|If let<br> Elseif let|`\if let <variableName> = <expression> {`<br>`\} elseif let <variableName> = <expression> {` | If expression is not `nil` store result in `variableName` and run commands in given block otherwise run elseif\|else block if exists|
+|If<br> Else if<br> Else|`\if <expression> {`<br>`\} else if <expression> {` <br>`\} else \{` | If expression is `true` run commands in given block otherwise run else if\|else block if exists|
+|If let<br> Else if let|`\if let <variableName> = <expression> {`<br>`\} else if let <variableName> = <expression> {` | If expression is not `nil` store result in `variableName` and run commands in given block otherwise run else if\|else block if exists|
 |Subview|`\Subview("<name>"`)|Add content of given subview postion of this command. *__Note:__* `name` must be static string. You can not use expression. `name` is using dot notation so instead of `MySubviewSubdirectory/Mysubview.nut` write `MySubviewSubdirectory.Mysubview.nut`.|
 |For|`\for <variable> in <Array>`<br>`\for (<key>, <value>) in <Dictionary>`| Iterates over array(`[Any]`) or dictionary(`[String: Any]`)|
 |Date| `\Date(<expression>)`<br>`\Date(<expression>, fromat: <expression>`) | Evaluates expression and print date in given format. If `format` is not set, NutView use default date format specified in `NutConfig.dateDefaultFormat: String { set get }`|
