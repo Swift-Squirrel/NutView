@@ -6,8 +6,10 @@
 //
 //
 
+import SquirrelCore
+
 /// Nut parser errors
-public struct NutParserError: Error, CustomStringConvertible {
+public struct NutParserError: SquirrelError {
     /// Error kinds
     ///
     /// - unknownInternalError: Something unexpected happened
@@ -92,7 +94,7 @@ public struct NutParserError: Error, CustomStringConvertible {
 }
 
 /// Error struct for common errors in NutView
-public struct NutError: Error, CustomStringConvertible {
+public struct NutError: SquirrelError {
     /// Error kinds
     ///
     /// - notExists: File does not exists
