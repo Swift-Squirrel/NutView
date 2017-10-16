@@ -13,10 +13,10 @@ public struct NutConfig {
     private init() {}
 
     /// Directory with *.fruit* files
-    public static var fruits = Path().absolute() + "Fruits"
+    public static var fruits = Path().absolute() + "Storage/Fruits"
 
     /// Directory with *.nut* files
-    public static var nuts = Path().absolute() + "Nuts"
+    public static var nuts = Path().absolute() + "Resources/NutViews"
 
     /// Default date format
     public static var dateDefaultFormat = "MMM dd yyyy"
