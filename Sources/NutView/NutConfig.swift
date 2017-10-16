@@ -10,7 +10,11 @@ import Cache
 
 /// Configuration class with *nut* and *fruit* directories
 public struct NutConfig {
-    private init() {}
+    private init() {
+        if !NutConfig.fruits.exists {
+            try? NutConfig.fruits.mkpath()
+        }
+    }
 
     /// Directory with *.fruit* files
     public static var fruits = Path().absolute() + "Storage/Fruits"
