@@ -11,6 +11,12 @@ import Foundation
 // MARK: - SquirrelPresentable
 extension View: SquirrelPresentable {
 
+    /// Representation type
+    public var representAs: Representation {
+        return .html
+    }
+
+
     /// View representation in data
     ///
     /// - Returns: View representation in data

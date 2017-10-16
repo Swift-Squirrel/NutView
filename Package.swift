@@ -11,7 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/Swift-Squirrel/SquirrelJSON.git", from: "0.1.0"),
-        .package(url: "https://github.com/Swift-Squirrel/Squirrel-Core.git", from: "0.1.0"),
+        .package(url: "https://github.com/Swift-Squirrel/Squirrel-Core.git", from: "0.1.1"),
         .package(url: "https://github.com/Swift-Squirrel/Evaluation.git",  from: "0.3.1"),
         .package(url: "https://github.com/sharplet/Regex.git",  from: "1.1.0"),
         .package(url: "https://github.com/kylef/PathKit.git",  from: "0.8.0"),
@@ -21,8 +21,12 @@ let package = Package(
         .target(
             name: "NutView",
             dependencies: ["SquirrelJSON", "Evaluation", "Regex", "Cache", "PathKit", "SquirrelCore"]),
+
         .testTarget(
             name: "NutViewTests",
+            dependencies: ["NutView"]),
+        .testTarget(
+            name: "NutViewIntegrationTests",
             dependencies: ["NutView"]),
     ]
 )
