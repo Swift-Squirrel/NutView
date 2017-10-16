@@ -107,6 +107,8 @@ let postView = try View(name: "Posts.Post", with: postData) // note we write . i
 let postContent = try postView.getContent()
 print(postContent) // prints generated content of page with given data
 
+let postContentData = try postView.present() // Data representation of view
+
 ```
 
 For more examples check [Examples](https://github.com/Swift-Squirrel/Examples)

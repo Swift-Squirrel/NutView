@@ -1,6 +1,6 @@
 //
 //  View.swift
-//  Squirrel
+//  NutView
 //
 //  Created by Filip Klembara on 8/4/17.
 //
@@ -9,7 +9,7 @@
 import SquirrelJSON
 
 /// Represents html document generated from *.nut* file
-public struct View: ViewProtocol {
+public struct View {
 
     private let name: String
     private let data: [String: Any]

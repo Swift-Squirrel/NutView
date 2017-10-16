@@ -1,6 +1,6 @@
 //
 //  NutResolver.swift
-//  Squirrel
+//  NutView
 //
 //  Created by Filip Klembara on 8/11/17.
 //

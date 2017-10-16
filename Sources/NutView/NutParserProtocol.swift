@@ -1,6 +1,6 @@
 //
 //  NutParserProtocol.swift
-//  Squirrel
+//  NutView
 //
 //  Created by Filip Klembara on 8/6/17.
 //

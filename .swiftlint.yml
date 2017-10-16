@@ -1,0 +1,41 @@
+included:
+  - Sources
+
+excluded:
+  - "Sources/App"
+    #  - "Sources/ResponseManager+addRoutes.swift"
+    #- Sources/HTTPHeaders.swift
+
+disabled_rules:
+  - conditional_binding_cascade
+
+custom_rules:
+  missing_docs:
+    included: ".*.swift"
+    regex: '(?:\n[ \t]*)(?!\/\/\/)(?!\/\/ MARK:)(?:\/\/)?[^\n\/@]*(?:\n[ \t]*@\S+)*\n[ \t]*(?:public|open) '
+    name: "Missing Docs"
+    message: "Types, properties and methods with public or open access level should be documented."
+    severity: warning
+
+  emptyline_before_curlbrace:
+    included: ".*.swift"
+    regex: '\n[ \t]*\n[ \t]*\}'
+    name: "newline before curlbrace"
+    message: "'}' should not be separated with code by empty line"
+    severity: warning
+
+  placeholder:
+    included: ".*.swift"
+    regex: '<#.*#>'
+    name: "Placeholder in source"
+    message: "Source code should not contains placeholders"
+    severity: warning
+
+variable_name:
+  excluded:
+    - id
+
+line_length:
+  - 100 # warning
+  - 130 # error
+
