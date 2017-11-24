@@ -14,7 +14,7 @@ class NutParserTests: XCTestCase {
     func testSimpleParse() {
         let parser = NutParser(content: """
             \\Title("Title of post")
-            this is about \\(topic)
+            this is about \\(_topic)
             """, name: "Views/Post.nut")
 
         XCTAssert(parser.jsonSerialized == "")
@@ -34,7 +34,7 @@ class NutParserTests: XCTestCase {
             return
         }
         let expected = try! JSON(json: """
-            {"head":[{"id":"title","expression":{"infix":"\\"Title of post\\"","id":"expression","line":1},"line":1}],"body":[{"id":"text","value":"\\nthis is about "},{"infix":"topic","id":"expression","line":2}],"fileName":"Views\\/Post.nut"}
+            {"head":[{"id":"title","expression":{"infix":"\\"Title of post\\"","id":"expression","line":1},"line":1}],"body":[{"id":"text","value":"\\nthis is about "},{"infix":"_topic","id":"expression","line":2}],"fileName":"Views\\/Post.nut"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -308,6 +308,186 @@ class NutParserTests: XCTestCase {
         XCTAssert(serialized == expected, parser.jsonSerialized)
     }
 
+    func testVarName1() {
+        let content = """
+        \\if let _a = a {\\}
+        """
+        let parser = NutParser(content: content, name: "Views/Smt.nut")
+
+        XCTAssert(parser.jsonSerialized == "")
+
+        guard let viewToken = try? parser.tokenize() else {
+            XCTFail()
+            return
+        }
+
+        XCTAssert(viewToken.body.count == 2, String(describing: viewToken.body.count))
+        XCTAssertEqual(viewToken.head.count, 0)
+        XCTAssertNil(viewToken.layout)
+        XCTAssert(viewToken.name == "Views/Smt.nut")
+
+        guard let serialized = try? JSON(json: parser.jsonSerialized) else {
+            XCTFail()
+            return
+        }
+        let expected = try! JSON(json: """
+            {"body":[{"variable":"_a","id":"if let","condition":{"id":"raw expression","infix":"a","line":1},"then":[],"line":1},{"id":"text","value":""}],"fileName":"Views\\/Smt.nut"}
+            """)
+
+        XCTAssertEqual(serialized, expected)
+
+    }
+
+    func testVarName2() {
+        let content = """
+        \\if let __a = a {\\}
+        """
+        let parser = NutParser(content: content, name: "Views/Smt.nut")
+
+        XCTAssert(parser.jsonSerialized == "")
+
+        var vt: ViewToken! = nil
+
+        XCTAssertNoThrow(vt = try parser.tokenize())
+
+        guard let viewToken = vt else {
+            XCTFail()
+            return
+        }
+
+
+        XCTAssert(viewToken.body.count == 2, String(describing: viewToken.body.count))
+        XCTAssertEqual(viewToken.head.count, 0)
+        XCTAssertNil(viewToken.layout)
+        XCTAssert(viewToken.name == "Views/Smt.nut")
+
+        guard let serialized = try? JSON(json: parser.jsonSerialized) else {
+            XCTFail()
+            return
+        }
+        let expected = try! JSON(json: """
+            {"body":[{"variable":"__a","id":"if let","condition":{"id":"raw expression","infix":"a","line":1},"then":[],"line":1},{"id":"text","value":""}],"fileName":"Views\\/Smt.nut"}
+            """)
+
+        XCTAssertEqual(serialized, expected)
+    }
+
+    func testVarName3() {
+        let content = """
+        \\if let _a_ = a {\\}
+        """
+        let parser = NutParser(content: content, name: "Views/Smt.nut")
+
+        XCTAssert(parser.jsonSerialized == "")
+
+        guard let viewToken = try? parser.tokenize() else {
+            XCTFail()
+            return
+        }
+
+        XCTAssert(viewToken.body.count == 2, String(describing: viewToken.body.count))
+        XCTAssertEqual(viewToken.head.count, 0)
+        XCTAssertNil(viewToken.layout)
+        XCTAssert(viewToken.name == "Views/Smt.nut")
+
+        guard let serialized = try? JSON(json: parser.jsonSerialized) else {
+            XCTFail()
+            return
+        }
+        let expected = try! JSON(json: """
+            {"body":[{"variable":"_a_","id":"if let","condition":{"id":"raw expression","infix":"a","line":1},"then":[],"line":1},{"id":"text","value":""}],"fileName":"Views\\/Smt.nut"}
+            """)
+
+        XCTAssertEqual(serialized, expected)
+    }
+
+    func testVarName4() {
+        let content = """
+        \\if let a_ = a {\\}
+        """
+        let parser = NutParser(content: content, name: "Views/Smt.nut")
+
+        XCTAssert(parser.jsonSerialized == "")
+
+        guard let viewToken = try? parser.tokenize() else {
+            XCTFail()
+            return
+        }
+
+        XCTAssert(viewToken.body.count == 2, String(describing: viewToken.body.count))
+        XCTAssertEqual(viewToken.head.count, 0)
+        XCTAssertNil(viewToken.layout)
+        XCTAssert(viewToken.name == "Views/Smt.nut")
+
+        guard let serialized = try? JSON(json: parser.jsonSerialized) else {
+            XCTFail()
+            return
+        }
+        let expected = try! JSON(json: """
+            {"body":[{"variable":"a_","id":"if let","condition":{"id":"raw expression","infix":"a","line":1},"then":[],"line":1},{"id":"text","value":""}],"fileName":"Views\\/Smt.nut"}
+            """)
+
+        XCTAssertEqual(serialized, expected)
+    }
+
+    func testVarName5() {
+        let content = """
+        \\if let a_a_a = a {\\}
+        """
+        let parser = NutParser(content: content, name: "Views/Smt.nut")
+
+        XCTAssert(parser.jsonSerialized == "")
+
+        guard let viewToken = try? parser.tokenize() else {
+            XCTFail()
+            return
+        }
+
+        XCTAssert(viewToken.body.count == 2, String(describing: viewToken.body.count))
+        XCTAssertEqual(viewToken.head.count, 0)
+        XCTAssertNil(viewToken.layout)
+        XCTAssert(viewToken.name == "Views/Smt.nut")
+
+        guard let serialized = try? JSON(json: parser.jsonSerialized) else {
+            XCTFail()
+            return
+        }
+        let expected = try! JSON(json: """
+            {"body":[{"variable":"a_a_a","id":"if let","condition":{"id":"raw expression","infix":"a","line":1},"then":[],"line":1},{"id":"text","value":""}],"fileName":"Views\\/Smt.nut"}
+            """)
+
+        XCTAssertEqual(serialized, expected)
+    }
+
+    func testVarName6() {
+        let content = """
+        \\if let a = _a._b_ {\\}
+        """
+        let parser = NutParser(content: content, name: "Views/Smt.nut")
+
+        XCTAssert(parser.jsonSerialized == "")
+
+        guard let viewToken = try? parser.tokenize() else {
+            XCTFail()
+            return
+        }
+
+        XCTAssert(viewToken.body.count == 2, String(describing: viewToken.body.count))
+        XCTAssertEqual(viewToken.head.count, 0)
+        XCTAssertNil(viewToken.layout)
+        XCTAssert(viewToken.name == "Views/Smt.nut")
+
+        guard let serialized = try? JSON(json: parser.jsonSerialized) else {
+            XCTFail()
+            return
+        }
+        let expected = try! JSON(json: """
+            {"body":[{"variable":"a","id":"if let","condition":{"id":"raw expression","infix":"_a._b_","line":1},"then":[],"line":1},{"id":"text","value":""}],"fileName":"Views\\/Smt.nut"}
+            """)
+
+        XCTAssertEqual(serialized, expected)
+    }
+
     static let allTests = [
         ("testSimpleParse", testSimpleParse),
         ("testMediumParse", testMediumParse),
@@ -318,6 +498,12 @@ class NutParserTests: XCTestCase {
         ("testExpressions", testExpressions),
         ("testLayoutCommands", testLayoutCommands),
         ("testEscapeCommands", testEscapeCommands),
+        ("testVarName1", testVarName1),
+        ("testVarName2", testVarName2),
+        ("testVarName3", testVarName3),
+        ("testVarName4", testVarName4),
+        ("testVarName5", testVarName5),
+        ("testVarName6", testVarName6),
     ]
 
 }

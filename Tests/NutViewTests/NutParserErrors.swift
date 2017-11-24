@@ -279,8 +279,8 @@ class NutParserErrors: XCTestCase {
     func testVariableName() {
         let name = "Views/Main.nut"
         var content = "\n\\if let 3a = asd {"
-        let simple = "^[a-zA-Z]\\w*$"
-        let chained = "^[a-zA-Z]\\w*(?:\\.[a-zA-Z]\\w*)*$"
+        let simple = "^[a-zA-Z_]\\w*$"
+        let chained = "^[a-zA-Z_]\\w*(?:\\.[a-zA-Z_]\\w*)*$"
         var expect = NutParserError(kind: .wrongSimpleVariable(name: "3a", in: "if let 3a = asd {", regex: simple), line: 2)
         expect.name = name
         XCTAssertTrue(checkError(for: content, expect: expect), "if let '3a'")

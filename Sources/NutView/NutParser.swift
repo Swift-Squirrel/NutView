@@ -14,9 +14,9 @@ import Regex
 // swiftlint:disable file_length
 
 struct VariableCheck {
-    static let simpleVariable = (regex: "^[a-zA-Z]\\w*$", value: Regex("^[a-zA-Z]\\w*$"))
-    static let chainedVariable = (regex: "^[a-zA-Z]\\w*(?:\\.[a-zA-Z]\\w*)*$",
-                                   value: Regex("^[a-zA-Z]\\w*(?:\\.[a-zA-Z]\\w*)*$"))
+    static let simpleVariable = (regex: "^[a-zA-Z_]\\w*$", value: Regex("^[a-zA-Z_]\\w*$"))
+    static let chainedVariable = (regex: "^[a-zA-Z_]\\w*(?:\\.[a-zA-Z_]\\w*)*$",
+                                   value: Regex("^[a-zA-Z_]\\w*(?:\\.[a-zA-Z_]\\w*)*$"))
     static func checkSimple(variable: String) -> Bool {
         let regex = simpleVariable.value
         return regex.matches(variable)
