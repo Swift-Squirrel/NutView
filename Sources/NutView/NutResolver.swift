@@ -8,7 +8,6 @@
 
 import Foundation
 import PathKit
-import Cache
 
 protocol NutResolverProtocol {
     static func viewToken(for name: String) throws -> ViewToken
