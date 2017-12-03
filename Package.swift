@@ -14,13 +14,12 @@ let package = Package(
         .package(url: "https://github.com/Swift-Squirrel/Squirrel-Core.git", from: "0.1.1"),
         .package(url: "https://github.com/Swift-Squirrel/Evaluation.git",  from: "0.3.1"),
         .package(url: "https://github.com/sharplet/Regex.git",  from: "1.1.0"),
-        .package(url: "https://github.com/kylef/PathKit.git",  from: "0.8.0"),
-        .package(url: "https://github.com/LeoNavel/Cache.git", from: "4.0.3")
+        .package(url: "https://github.com/kylef/PathKit.git",  from: "0.8.0")
     ],
     targets: [
         .target(
             name: "NutView",
-            dependencies: ["SquirrelJSON", "Evaluation", "Regex", "Cache", "PathKit", "SquirrelCore"]),
+            dependencies: ["SquirrelJSON", "Evaluation", "Regex", "PathKit", "SquirrelCore"]),
 
         .testTarget(
             name: "NutViewTests",

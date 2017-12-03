@@ -15,9 +15,6 @@ protocol NutResolverProtocol {
 }
 
 struct NutResolver: NutResolverProtocol {
-    private static var cache: SpecializedCache<ViewToken> {
-        return NutConfig.NutViewCache.cache
-    }
     static func viewToken(for name: String) throws -> ViewToken {
         let nutName = name.replacingAll(matching: "\\.", with: "/") + ".nut"
         let fruitName = name + ".fruit"
@@ -25,9 +22,6 @@ struct NutResolver: NutResolverProtocol {
         let fruit = NutConfig.fruits + fruitName
         let nut = NutConfig.nuts + nutName
         let fruitValid = isValid(fruit: fruit, nut: nut)
-        if let token = cache["name"], fruitValid {
-            return token
-        }
 
         guard nut.exists else {
             throw NutError(kind: .notExists(name: nutName))
@@ -54,7 +48,6 @@ struct NutResolver: NutResolverProtocol {
             }
             try? fruit.write(serialized)
         }
-        try? cache.addObject(vToken, forKey: name)
         return vToken
     }
 
