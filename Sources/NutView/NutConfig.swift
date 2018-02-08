@@ -6,7 +6,7 @@
 //
 
 import PathKit
-import Cache
+import SquirrelCache
 
 /// Configuration class with *nut* and *fruit* directories
 public struct NutConfig {

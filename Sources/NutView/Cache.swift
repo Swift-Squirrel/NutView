@@ -5,7 +5,7 @@
 //  Created by Filip Klembara on 9/10/17.
 //
 
-import Cache
+import SquirrelCache
 import Foundation
 
 extension ViewCommands: Cachable {

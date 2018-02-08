@@ -8,7 +8,7 @@
 
 import Foundation
 import PathKit
-import Cache
+import SquirrelCache
 
 protocol NutResolverProtocol {
     static func viewCommands(for name: String) throws -> ViewCommands
