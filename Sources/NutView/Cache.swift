@@ -6,31 +6,24 @@
 //
 
 import Cache
-import SquirrelJSON
 import Foundation
 
-extension ViewToken: Cachable {
-    static func decode(_ data: Data) -> ViewToken? {
-        guard let string = String(data: data, encoding: .utf8) else {
+extension ViewCommands: Cachable {
+    static func decode(_ data: Data) -> CacheType? {
+        let fruitParser: FruitParserProtocol.Type = FruitParser.self
+        guard let commands = try? fruitParser.decodeCommands(data: data) else {
             return nil
         }
-        let parser = FruitParser(content: string)
-        return parser.tokenize()
+        return commands
     }
 
     func encode() -> Data? {
-        var res = [String: Any]()
-        res["body"] = body.map({ $0.serialized })
-        if head.count > 0 {
-            res["head"] = head.map({ $0.serialized })
+        let fruitParser: FruitParserProtocol.Type = FruitParser.self
+        guard let data = try? fruitParser.encodeCommands(self) else {
+            return nil
         }
-        if let layout = self.layout {
-            res["layout"] = layout
-        }
-        res["fileName"] = name
-        let data: Data? = try? JSONCoding.encodeDataJSON(object: res)
         return data
     }
 
-    typealias CacheType = ViewToken
+    typealias CacheType = ViewCommands
 }

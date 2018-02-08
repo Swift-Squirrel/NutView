@@ -47,7 +47,7 @@ public struct NutConfig {
         /// Default name for cache
         public static let defaultName = "FruitsCache"
 
-        static var cache: SpecializedCache<ViewToken> = SpecializedCache(name: defaultName)
+        static var cache: SpecializedCache<ViewCommands> = SpecializedCache(name: defaultName)
 
         /// Set projection cache manager
         ///

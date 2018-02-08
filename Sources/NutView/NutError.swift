@@ -8,8 +8,49 @@
 
 import SquirrelCore
 
-/// Nut parser errors
 public struct NutParserError: SquirrelError {
+    enum ErrorKind {
+        case incompleteCommand(expecting: String)
+        case syntaxError(context: String, line: Int)
+        case lexical(error: NutLexical.LexicalError)
+        case unknownError(cousingError: Error)
+    }
+    let name: String
+    let kind: ErrorKind
+    public var description: String {
+        let des: String
+        switch kind {
+        case .incompleteCommand(let expectation):
+            des = "Incomplete command, expecting '\(expectation)' but 'EOF' found"
+        case .syntaxError(let contex, let line):
+            des = "Syntax error at line: \(line), \(contex)"
+        case .lexical(let error):
+            des = "Lexical error: \(error.description)"
+        case .unknownError(let cousingError):
+            des = "Unknown error coused by \(cousingError)"
+        }
+        return "Error while parsing file \(name), description: \(des)"
+    }
+
+    static func incompleteCommand(fileName: String, expecting expectation: String) -> NutParserError {
+        return NutParserError(name: fileName, kind: .incompleteCommand(expecting: expectation))
+    }
+
+    static func syntax(fileName: String, context: String, line: Int) -> NutParserError {
+        return NutParserError(name: fileName, kind: .syntaxError(context: context, line: line))
+    }
+
+    static func lexical(fileName: String, error: NutLexical.LexicalError) -> NutParserError {
+        return NutParserError(name: fileName, kind: .lexical(error: error))
+    }
+
+    static func unknown(fileName: String, error: Error) -> NutParserError {
+        return NutParserError(name: fileName, kind: .unknownError(cousingError: error))
+    }
+}
+
+/// Nut parser errors
+public struct OldNutParserError: SquirrelError {
     /// Error kinds
     ///
     /// - unknownInternalError: Something unexpected happened
@@ -140,7 +181,7 @@ extension NutError: SquirrelHTMLConvertibleError {
     }
 }
 
-extension NutParserError: SquirrelHTMLConvertibleError {
+extension OldNutParserError: SquirrelHTMLConvertibleError {
 
     /// HTML error representation
     public var htmlErrorRepresentation: String {

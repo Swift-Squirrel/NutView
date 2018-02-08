@@ -1,0 +1,194 @@
+//
+//  Tokens.swift
+//  NutView
+//
+//  Created by Filip Klembara on 1/27/18.
+//
+
+import Foundation
+
+struct Token: CustomStringConvertible, Equatable {
+
+    var id: TokenType
+    var value: String
+    var line: Int
+
+    enum TokenType: String {
+        case leftParentles = "("
+        case rightParentles = ")"
+        case leftCurly = "{"
+        case rightCurly = "}"
+        case equal = "="
+        case comma = ","
+        case text
+        case expression
+        case namedArgument
+    }
+
+    var description: String {
+        return "\(line): <\(id.rawValue)> - \(value)"
+    }
+
+    static func ==(lhs: Token, rhs: Token) -> Bool {
+        guard lhs.id == rhs.id else {
+            return false
+        }
+        guard lhs.value == rhs.value else {
+            return false
+        }
+        guard lhs.line == rhs.line else {
+            return false
+        }
+        return true
+    }
+}
+
+enum NextTokenType {
+    case html
+    case command
+}
+
+struct HTMLToken: Equatable, CustomStringConvertible {
+    static func ==(lhs: HTMLToken, rhs: HTMLToken) -> Bool {
+        guard lhs.value == rhs.value else {
+            return false
+        }
+        guard lhs.line == rhs.line else {
+            return false
+        }
+        return true
+    }
+
+    var description: String {
+        return "\(line): <html> - \(value)"
+    }
+
+    let value: String
+    let line: Int
+}
+
+
+struct CommandToken: Equatable, CustomStringConvertible {
+    var description: String {
+        return "\(line): <\(type.rawValue)>"
+    }
+
+    static func ==(lhs: CommandToken, rhs: CommandToken) -> Bool {
+        guard lhs.type == rhs.type else {
+            return false
+        }
+        guard lhs.line == rhs.line else {
+            return false
+        }
+        return true
+    }
+
+    enum CommandTokenType: String {
+        case title = "Title"
+        case escapedValue = "EscapedValue"
+        case rawValue = "RawValue"
+        case blockEnd = "}"
+        case `else` = "} else {"
+        case `elseIf` = "} else if"
+        case `if`
+        case `for`
+        case date = "Date"
+        case subview = "Subview"
+        case layout = "Layout"
+        case view = "View"
+    }
+    var type: CommandTokenType
+    var line: Int
+}
+
+//struct LeftParenthles: Token, Equatable {
+//    static func ==(lhs: LeftParenthles, rhs: LeftParenthles) -> Bool {
+//        return lhs.line == rhs.line
+//    }
+//
+//    var description: String {
+//        return "\(line): <(>"
+//    }
+//
+//    let line: Int
+//}
+//
+//struct RightParenthles: Token, Equatable {
+//    static func ==(lhs: RightParenthles, rhs: RightParenthles) -> Bool {
+//        return lhs.line == rhs.line
+//    }
+//
+//    var description: String {
+//        return "\(line): <)>"
+//    }
+//
+//    let line: Int
+//
+//}
+
+//struct Parethleses: Token, Equatable {
+//    let value: String
+//    let line: Int
+//
+//    static func ==(lhs: Parethleses, rhs: Parethleses) -> Bool {
+//        guard lhs.value == rhs.value && lhs.line == rhs.line else {
+//            return false
+//        }
+//        return true
+//    }
+//
+//    var description: String {
+//        return "\(line): <()> \(value)"
+//    }
+//}
+//
+//struct AnyToken: Token, Equatable {
+//    static func ==(lhs: AnyToken, rhs: AnyToken) -> Bool {
+//        return lhs.value == rhs.value && lhs.line == rhs.line
+//    }
+//
+//    var description: String {
+//        return "\(line): <anyToken> - \(value)"
+//    }
+//
+//    let value: String
+//    let line: Int
+//}
+
+
+//struct Token {
+//    let id: TokenType
+//    let value: String
+//    let line: Int
+//}
+/*
+// MARK: - Equatable
+extension Token: Equatable {
+    static func ==(lhs: Token, rhs: Token) -> Bool {
+        guard lhs.id == rhs.id else {
+            return false
+        }
+        guard lhs.value == rhs.value else {
+            return false
+        }
+        guard lhs.line == rhs.line else {
+            return false
+        }
+        return true
+    }
+}
+
+// MARK: - CustomStringConvertible
+extension Token: CustomStringConvertible {
+    var description: String {
+        return "\(line): <\(id.rawValue)> \(value)"
+    }
+}
+
+// MARK: - TokenType
+extension Token {
+    enum TokenType: String {
+        case html
+        case white
+    }
+}*/

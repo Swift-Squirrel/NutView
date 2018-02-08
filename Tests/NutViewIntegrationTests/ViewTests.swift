@@ -125,16 +125,16 @@ class ViewTests: XCTestCase {
         let name = "Posts"
         let view = View(name: name)
 
-        var expected = NutParserError(kind: .missingValue(for: "posts"), line: 13)
+        var expected = OldNutParserError(kind: .missingValue(for: "posts"), line: 13)
         expected.name = "Views/Posts.nut"
         XCTAssertTrue(checkError(for: view, expect: expected), "Missing value for 'posts'")
     }
 
-    private func checkError(for view: View, expect: NutParserError) -> Bool {
+    private func checkError(for view: View, expect: OldNutParserError) -> Bool {
         do {
             let cnt = try view.getContent()
             XCTFail(cnt)
-        } catch let error as NutParserError {
+        } catch let error as OldNutParserError {
             XCTAssertEqual(expect.description, error.description)
             if expect.description == error.description {
                 return true

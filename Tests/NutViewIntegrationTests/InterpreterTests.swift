@@ -113,7 +113,7 @@ class InterpreterTests: XCTestCase {
         let data: [String: Any] = [:]
         let name = "Posts"
         let interpreter = NutInterpreter(view: name, with: data)
-        var expected = NutParserError(kind: .missingValue(for: "posts"), line: 13)
+        var expected = OldNutParserError(kind: .missingValue(for: "posts"), line: 13)
         expected.name = "Views/Posts.nut"
         XCTAssertTrue(checkError(for: interpreter, expect: expected), "Missing value for 'posts'")
     }
@@ -142,16 +142,16 @@ class InterpreterTests: XCTestCase {
             ]
         let name = "Posts"
         let interpreter = NutInterpreter(view: name, with: data)
-        var expected = NutParserError(kind: .wrongValue(for: "Date(_:format:)", expected: "Double", got: "asd"), line: 38)
+        var expected = OldNutParserError(kind: .wrongValue(for: "Date(_:format:)", expected: "Double", got: "asd"), line: 38)
         expected.name = "Views/Posts.nut"
         XCTAssertTrue(checkError(for: interpreter, expect: expected), "String in Date")
     }
 
-    private func checkError(for interpreter: NutInterpreterProtocol, expect: NutParserError) -> Bool {
+    private func checkError(for interpreter: NutInterpreterProtocol, expect: OldNutParserError) -> Bool {
         do {
             let cnt = try interpreter.resolve()
             XCTFail(cnt)
-        } catch let error as NutParserError {
+        } catch let error as OldNutParserError {
             XCTAssertEqual(expect.description, error.description)
             if expect.description == error.description {
                 return true

@@ -11,41 +11,49 @@
 import Foundation
 import Evaluation
 
-protocol NutTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldNutTokenProtocol {
     var id: String { get }
 
     var serialized: [String: Any] { get }
 }
 
-protocol NutCommandTokenProtocol: NutTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldNutCommandTokenProtocol: OldNutTokenProtocol {
     var line: Int { get }
 }
 
-protocol NutViewProtocol: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldNutViewProtocol: OldNutCommandTokenProtocol {
     var name: String { get }
 }
 
-protocol NutSubviewProtocol: NutViewProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldNutSubviewProtocol: OldNutViewProtocol {
 
 }
 
-protocol NutLayoutProtocol: NutViewProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldNutLayoutProtocol: OldNutViewProtocol {
 
 }
 
-protocol NutHeadProtocol: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldNutHeadProtocol: OldNutCommandTokenProtocol {
 
 }
 
-protocol IfTokenProtocol: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldIfTokenProtocol: OldNutCommandTokenProtocol {
     init(condition: String, line: Int) throws
-    mutating func setThen(body: [NutTokenProtocol])
-    mutating func setElse(body: [NutTokenProtocol])
+    mutating func setThen(body: [OldNutTokenProtocol])
+    mutating func setElse(body: [OldNutTokenProtocol])
     var variable: String? { get }
-    var condition: RawExpressionToken { get }
+    var condition: OldRawExpressionToken { get }
 }
 
-struct TextToken: NutTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldTextToken: OldNutTokenProtocol {
     let id = "text"
 
     let value: String
@@ -59,7 +67,8 @@ struct TextToken: NutTokenProtocol {
     }
 }
 
-struct InsertViewToken: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldInsertViewToken: OldNutCommandTokenProtocol {
     var line: Int
 
     let id = "view"
@@ -73,16 +82,18 @@ struct InsertViewToken: NutCommandTokenProtocol {
     }
 }
 
-struct DateToken: NutCommandTokenProtocol {
+
+@available(*, deprecated, message: "Use without old")
+struct OldDateToken: OldNutCommandTokenProtocol {
     let line: Int
 
     let id = "date"
 
-    let date: RawExpressionToken
+    let date: OldRawExpressionToken
 
-    let format: RawExpressionToken?
+    let format: OldRawExpressionToken?
 
-    init(date: RawExpressionToken, format: RawExpressionToken? = nil, line: Int) {
+    init(date: OldRawExpressionToken, format: OldRawExpressionToken? = nil, line: Int) {
         self.date = date
         self.line = line
         self.format = format
@@ -101,7 +112,9 @@ struct DateToken: NutCommandTokenProtocol {
     }
 }
 
-struct IfToken: NutCommandTokenProtocol, IfTokenProtocol {
+
+@available(*, deprecated, message: "Use without old")
+struct OldIfToken: OldNutCommandTokenProtocol, OldIfTokenProtocol {
     private let _id: IDNames
 
     var id: String {
@@ -115,17 +128,17 @@ struct IfToken: NutCommandTokenProtocol, IfTokenProtocol {
 
     let line: Int
 
-    let condition: RawExpressionToken
+    let condition: OldRawExpressionToken
 
-    var thenBlock = [NutTokenProtocol]()
+    var thenBlock = [OldNutTokenProtocol]()
 
-    var elseBlock: [NutTokenProtocol]? = nil
+    var elseBlock: [OldNutTokenProtocol]? = nil
 
-    mutating func setThen(body: [NutTokenProtocol]) {
+    mutating func setThen(body: [OldNutTokenProtocol]) {
         self.thenBlock = body
     }
 
-    mutating func setElse(body: [NutTokenProtocol]) {
+    mutating func setElse(body: [OldNutTokenProtocol]) {
         self.elseBlock = body
     }
 
@@ -141,12 +154,12 @@ struct IfToken: NutCommandTokenProtocol, IfTokenProtocol {
         if condition.hasPrefix("let ") {
             var separated = condition.components(separatedBy: " ")
             guard separated.count == 4 else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .syntaxError(expected: expected, got: "if " + condition + " {"),
                     line: line)
             }
             guard separated[2] == "=" else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .syntaxError(expected: expected, got: "if " + condition + " {"),
                     line: line)
             }
@@ -159,13 +172,13 @@ struct IfToken: NutCommandTokenProtocol, IfTokenProtocol {
             variable = nil
 
         }
-        let expr = RawExpressionToken(infix: exprCondition, line: line)
+        let expr = OldRawExpressionToken(infix: exprCondition, line: line)
 
         self.init(variable: variable, condition: expr, line: line)
         try checkVariable()
     }
 
-    init(variable: String? = nil, condition: RawExpressionToken, line: Int) {
+    init(variable: String? = nil, condition: OldRawExpressionToken, line: Int) {
         if let variable = variable {
             self._id = IDNames.ifLet
             self.variable = variable
@@ -180,7 +193,7 @@ struct IfToken: NutCommandTokenProtocol, IfTokenProtocol {
     func checkVariable() throws {
         if let variable = variable {
             guard VariableCheck.checkSimple(variable: variable) else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .wrongSimpleVariable(
                         name: variable,
                         in: "if let \(variable) = \(condition.infix) {",
@@ -188,7 +201,7 @@ struct IfToken: NutCommandTokenProtocol, IfTokenProtocol {
                     line: line)
             }
             guard VariableCheck.checkChained(variable: condition.infix) else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .wrongChainedVariable(
                         name: condition.infix,
                         in: "if let \(variable) = \(condition.infix) {",
@@ -215,7 +228,8 @@ struct IfToken: NutCommandTokenProtocol, IfTokenProtocol {
     }
 }
 
-struct ElseIfToken: NutCommandTokenProtocol, IfTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldElseIfToken: OldNutCommandTokenProtocol, OldIfTokenProtocol {
     enum IDNames: String {
         case elseIf = "else if"
         case elseIfLet = "else if let"
@@ -229,29 +243,29 @@ struct ElseIfToken: NutCommandTokenProtocol, IfTokenProtocol {
 
     let line: Int
 
-    let condition: RawExpressionToken
+    let condition: OldRawExpressionToken
 
-    private var thenBlock = [NutTokenProtocol]()
+    private var thenBlock = [OldNutTokenProtocol]()
 
-    private var elseBlock: [NutTokenProtocol]? = nil
+    private var elseBlock: [OldNutTokenProtocol]? = nil
 
-    func getElse() -> [NutTokenProtocol]? {
+    func getElse() -> [OldNutTokenProtocol]? {
         return elseBlock
     }
 
-    func getThen() -> [NutTokenProtocol] {
+    func getThen() -> [OldNutTokenProtocol] {
         return thenBlock
     }
 
-    func getCondition() -> RawExpressionToken {
+    func getCondition() -> OldRawExpressionToken {
         return condition
     }
 
-    mutating func setThen(body: [NutTokenProtocol]) {
+    mutating func setThen(body: [OldNutTokenProtocol]) {
         self.thenBlock = body
     }
 
-    mutating func setElse(body: [NutTokenProtocol]) {
+    mutating func setElse(body: [OldNutTokenProtocol]) {
         self.elseBlock = body
     }
 
@@ -267,14 +281,14 @@ struct ElseIfToken: NutCommandTokenProtocol, IfTokenProtocol {
         if condition.hasPrefix("let ") {
             var separated = condition.components(separatedBy: " ")
             guard separated.count == 4 else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .syntaxError(
                         expected: expected,
                         got: "} else if \(condition) {"),
                     line: line)
             }
             guard separated[2] == "=" else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .syntaxError(
                         expected: expected,
                         got: "} else if \(condition) {"),
@@ -289,7 +303,7 @@ struct ElseIfToken: NutCommandTokenProtocol, IfTokenProtocol {
             variable = nil
             _id = IDNames.elseIf
         }
-        let expr = RawExpressionToken(infix: exprCon, line: line)
+        let expr = OldRawExpressionToken(infix: exprCon, line: line)
         self.condition = expr
         self.line = line
         try checkVariable()
@@ -298,7 +312,7 @@ struct ElseIfToken: NutCommandTokenProtocol, IfTokenProtocol {
     func checkVariable() throws {
         if let variable = variable {
             guard VariableCheck.checkSimple(variable: variable) else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .wrongSimpleVariable(
                         name: variable,
                         in: "} else if let \(variable) = \(condition.infix) {",
@@ -306,7 +320,7 @@ struct ElseIfToken: NutCommandTokenProtocol, IfTokenProtocol {
                     line: line)
             }
             guard VariableCheck.checkChained(variable: condition.infix) else {
-                throw NutParserError(
+                throw OldNutParserError(
                     kind: .wrongChainedVariable(
                         name: condition.infix,
                         in: "} else if let \(variable) = \(condition.infix) {",
@@ -333,7 +347,8 @@ struct ElseIfToken: NutCommandTokenProtocol, IfTokenProtocol {
     }
 }
 
-struct LayoutToken: NutLayoutProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldLayoutToken: OldNutLayoutProtocol {
     let id = "layout"
 
     let line: Int
@@ -350,7 +365,8 @@ struct LayoutToken: NutLayoutProtocol {
     }
 }
 
-struct SubviewToken: NutSubviewProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldSubviewToken: OldNutSubviewProtocol {
     var name: String
 
     var line: Int
@@ -367,14 +383,15 @@ struct SubviewToken: NutSubviewProtocol {
     }
 }
 
-struct TitleToken: NutHeadProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldTitleToken: OldNutHeadProtocol {
     let id = "title"
 
     let line: Int
 
-    let expression: ExpressionToken
+    let expression: OldExpressionToken
 
-    init(expression: ExpressionToken, line: Int) {
+    init(expression: OldExpressionToken, line: Int) {
         self.line = line
         self.expression = expression
     }
@@ -384,7 +401,8 @@ struct TitleToken: NutHeadProtocol {
     }
 }
 
-struct ForInToken: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldForInToken: OldNutCommandTokenProtocol {
     enum IDNames: String {
         case forInArray = "for in Array"
         case forInDictionary = "for in Dictionary"
@@ -403,9 +421,9 @@ struct ForInToken: NutCommandTokenProtocol {
 
     let array: String
 
-    var body: [NutTokenProtocol]
+    var body: [OldNutTokenProtocol]
 
-    mutating func setBody(body: [NutTokenProtocol]) {
+    mutating func setBody(body: [OldNutTokenProtocol]) {
         self.body = body
     }
 
@@ -437,22 +455,23 @@ struct ForInToken: NutCommandTokenProtocol {
     }
 }
 
-struct ElseToken: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldElseToken: OldNutCommandTokenProtocol {
     let id = "else"
 
     let line: Int
 
-    private var body = [NutTokenProtocol]()
+    private var body = [OldNutTokenProtocol]()
 
     init(line: Int) {
         self.line = line
     }
 
-    func getBody() -> [NutTokenProtocol] {
+    func getBody() -> [OldNutTokenProtocol] {
         return body
     }
 
-    mutating func setBody(body: [NutTokenProtocol]) {
+    mutating func setBody(body: [OldNutTokenProtocol]) {
         self.body = body
     }
 
@@ -461,7 +480,8 @@ struct ElseToken: NutCommandTokenProtocol {
     }
 }
 
-struct EndBlockToken: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldEndBlockToken: OldNutCommandTokenProtocol {
     let id = "}"
 
     let line: Int

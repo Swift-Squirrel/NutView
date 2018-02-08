@@ -1,5 +1,5 @@
 //
-//  ExpressionToken.swift
+//  OldExpressionToken.swift
 //  NutView
 //
 //  Created by Filip Klembara on 8/9/17.
@@ -10,17 +10,19 @@ import Evaluation
 import SquirrelJSON
 import Foundation
 
-protocol ExpressionTokenProtocol: NutCommandTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+protocol OldExpressionTokenProtocol: OldNutCommandTokenProtocol {
     var infix: String { get }
 }
 
-extension ExpressionTokenProtocol {
+extension OldExpressionTokenProtocol {
     func evaluate(with data: [String: Any]) throws -> Any? {
         return try infix.evaluate(with: data)
     }
 }
 
-struct ExpressionToken: ExpressionTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldExpressionToken: OldExpressionTokenProtocol {
     let id = "expression"
 
     let line: Int
@@ -37,7 +39,8 @@ struct ExpressionToken: ExpressionTokenProtocol {
     }
 }
 
-struct RawExpressionToken: ExpressionTokenProtocol {
+@available(*, deprecated, message: "Use without old")
+struct OldRawExpressionToken: OldExpressionTokenProtocol {
     let id = "raw expression"
 
     let line: Int
