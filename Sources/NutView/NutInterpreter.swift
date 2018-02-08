@@ -385,37 +385,3 @@ extension NutInterpreter {
         return ViewDescriptor(content: "", head: [], layout: nil)
     }
 }
-
-struct NutInterpreterError: SquirrelError {
-    enum ErrorKind {
-        case wrongValue(expecting: String, got: Any)
-        case evaluationError(expression: String, error: EvaluationError)
-        case recursiveView
-    }
-    let fileName: String
-    let kind: ErrorKind
-    let line: Int
-    var description: String {
-        let desc: String
-        switch kind {
-        case .evaluationError(let expression, let error):
-            desc = "Evaluation error while evaluating '\(expression)', causing error \(error)"
-        case .wrongValue(let expectation, let got):
-            desc = "Wrong value, expecting '\(expectation)', but got '\(got)'"
-        case .recursiveView:
-            desc = "View() command used in View or Subview before View has been fully resolved"
-        }
-        return "Interpret error in \(fileName) at line \(line) - \(desc)"
-    }
-    static func recursiveView(fileName: String, line: Int) -> NutInterpreterError {
-        return NutInterpreterError(fileName: fileName, kind: .recursiveView, line: line)
-    }
-
-    static func evaluation(fileName: String, expression: String, causedBy: EvaluationError, line: Int) -> NutInterpreterError {
-        return NutInterpreterError(fileName: fileName, kind: .evaluationError(expression: expression, error: causedBy), line: line)
-    }
-
-    static func wrongValue(fileName: String, expecting: String, got: Any, line: Int) -> NutInterpreterError {
-        return NutInterpreterError(fileName: fileName, kind: .wrongValue(expecting: expecting, got: got), line: line)
-    }
-}
