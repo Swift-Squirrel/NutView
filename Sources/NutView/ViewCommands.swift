@@ -5,6 +5,8 @@
 //  Created by Filip Klembara on 1/27/18.
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 
 struct ViewCommands: Codable {
@@ -65,7 +67,12 @@ extension ViewCommands {
         let collection: String
         let commands: [Command]
         let line: Int
-        init(key: String? = nil, value: String, collection: String, commands: [Command] = [], line: Int) {
+        init(key: String? = nil,
+             value: String,
+             collection: String,
+             commands: [Command] = [],
+             line: Int) {
+
             self.key = key
             self.value = value
             self.collection = collection
@@ -98,8 +105,11 @@ extension ViewCommands {
             self.line = line
         }
     }
+    // swiftlint:disable:next type_name
     struct If: Command {
+        // swiftlint:disable:next nesting
         struct ThenBlock: Codable {
+            // swiftlint:disable:next nesting
             enum ConditionType {
                 case simple(condition: RawValue)
                 case cast(variable: String, condition: RawValue)
@@ -113,12 +123,22 @@ extension ViewCommands {
         private(set) var `else`: [Command]
         let line: Int
 
-        init(variable: String? = nil, condition: String, then: [Command] = [], else: [Command] = [], line: Int) {
+        init(variable: String? = nil,
+             condition: String,
+             then: [Command] = [],
+             else: [Command] = [],
+             line: Int) {
+
             let rawValue = ViewCommands.RawValue(expression: condition, line: line)
             self.init(variable: variable, condition: rawValue, then: then, else: `else`, line: line)
         }
 
-        init(variable: String? = nil, condition: RawValue, then: [Command] = [], else: [Command] = [], line: Int) {
+        init(variable: String? = nil,
+             condition: RawValue,
+             then: [Command] = [],
+             else: [Command] = [],
+             line: Int) {
+
             let conditionType: ThenBlock.ConditionType
             if let variable = variable {
                 conditionType = .cast(variable: variable, condition: condition)
@@ -139,7 +159,11 @@ extension ViewCommands {
             add(thenBlock: then)
         }
 
-        init(conditions: [ThenBlock.ConditionType], then: [Command], else: [Command] = [], line: Int) {
+        init(conditions: [ThenBlock.ConditionType],
+             then: [Command],
+             else: [Command] = [],
+             line: Int) {
+
             let thenB = ThenBlock(conditions: conditions, block: then, line: line)
             self.init(then: thenB, else: `else`, line: line)
         }
@@ -207,7 +231,10 @@ extension ViewCommands {
 }
 
 extension ViewCommands {
-    static func encode(commands: [Command], unkeyedContainer container: inout UnkeyedEncodingContainer) throws {
+    // swiftlint:disable:next cyclomatic_complexity
+    static func encode(commands: [Command],
+                       unkeyedContainer container: inout UnkeyedEncodingContainer) throws {
+
         try commands.forEach {
             command in
             switch command {
@@ -232,46 +259,52 @@ extension ViewCommands {
             case let forCmd as For:
                 try container.encode(forCmd)
             default:
-                throw EncodingError.invalidValue(command, EncodingError.Context(codingPath: [], debugDescription: "Unknown command \(command)"))
+                let context = EncodingError.Context(codingPath: [],
+                                                    debugDescription: "Unknown command \(command)")
+                throw EncodingError.invalidValue(command, context)
             }
         }
     }
 
-    static func decode(unkeyedContainer container: inout UnkeyedDecodingContainer) throws -> [Command] {
-        enum NestedCodingKeys: String, CodingKey {
-            case id
-        }
-        var commands = [Command]()
-        while !container.isAtEnd {
-            var pomContainer = container
-            let nested = try pomContainer.nestedContainer(keyedBy: NestedCodingKeys.self)
-            let id = try nested.decode(ViewCommands.CommandType.self, forKey: .id)
-            let command: Command
-            switch id {
-            case .html:
-                command = try container.decode(HTML.self)
-            case .view:
-                command = try container.decode(InsertView.self)
-            case .date:
-                command = try container.decode(Date.self)
-            case .rawValue:
-                command = try container.decode(RawValue.self)
-            case .escapedValue:
-                command = try container.decode(EscapedValue.self)
-            case .`if`:
-                command = try container.decode(If.self)
-            case .layout:
-                command = try container.decode(Layout.self)
-            case .subview:
-                command = try container.decode(Subview.self)
-            case .title:
-                command = try container.decode(Title.self)
-            case .`for`:
-                command = try container.decode(For.self)
+    // swiftlint:disable:next cyclomatic_complexity
+    static func decode(unkeyedContainer container: inout UnkeyedDecodingContainer)
+        throws -> [Command] {
+
+            // swiftlint:disable:next nesting
+            enum NestedCodingKeys: String, CodingKey {
+                case id
             }
-            commands.append(command)
-        }
-        return commands
+            var commands = [Command]()
+            while !container.isAtEnd {
+                var pomContainer = container
+                let nested = try pomContainer.nestedContainer(keyedBy: NestedCodingKeys.self)
+                let id = try nested.decode(ViewCommands.CommandType.self, forKey: .id)
+                let command: Command
+                switch id {
+                case .html:
+                    command = try container.decode(HTML.self)
+                case .view:
+                    command = try container.decode(InsertView.self)
+                case .date:
+                    command = try container.decode(Date.self)
+                case .rawValue:
+                    command = try container.decode(RawValue.self)
+                case .escapedValue:
+                    command = try container.decode(EscapedValue.self)
+                case .`if`:
+                    command = try container.decode(If.self)
+                case .layout:
+                    command = try container.decode(Layout.self)
+                case .subview:
+                    command = try container.decode(Subview.self)
+                case .title:
+                    command = try container.decode(Title.self)
+                case .`for`:
+                    command = try container.decode(For.self)
+                }
+                commands.append(command)
+            }
+            return commands
     }
 }
 
@@ -302,7 +335,9 @@ extension ViewCommands.For {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let oid = try container.decode(ViewCommands.CommandType.self, forKey: .id)
         guard oid == id else {
-            throw DecodingError.dataCorruptedError(forKey: CodingKeys.id, in: container, debugDescription: "Wrong ID")
+            throw DecodingError.dataCorruptedError(forKey: CodingKeys.id,
+                                                   in: container,
+                                                   debugDescription: "Wrong ID")
         }
         key = try container.decodeIfPresent(String.self, forKey: .key)
         value = try container.decode(String.self, forKey: .value)
@@ -317,7 +352,7 @@ extension ViewCommands.For {
 }
 
 extension ViewCommands.If.ThenBlock.ConditionType: Codable {
-    private enum CodingKeys: String, CodingKey  {
+    private enum CodingKeys: String, CodingKey {
         case condition
         case variable
     }
@@ -345,7 +380,7 @@ extension ViewCommands.If.ThenBlock.ConditionType: Codable {
 }
 
 extension ViewCommands.If.ThenBlock {
-    private enum CodingKeys: String, CodingKey  {
+    private enum CodingKeys: String, CodingKey {
         case conditions
         case block
         case line
@@ -369,7 +404,7 @@ extension ViewCommands.If.ThenBlock {
 }
 
 extension ViewCommands.If {
-    private enum CodingKeys: String, CodingKey  {
+    private enum CodingKeys: String, CodingKey {
         case id
         case thens
         case `else`
@@ -392,7 +427,9 @@ extension ViewCommands.If {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let oid = try container.decode(ViewCommands.CommandType.self, forKey: .id)
         guard oid == id else {
-            throw DecodingError.dataCorruptedError(forKey: CodingKeys.id, in: container, debugDescription: "Wrong ID")
+            throw DecodingError.dataCorruptedError(forKey: CodingKeys.id,
+                                                   in: container,
+                                                   debugDescription: "Wrong ID")
         }
         line = try container.decode(Int.self, forKey: .line)
 
@@ -404,42 +441,6 @@ extension ViewCommands.If {
         }
     }
 }
-
-
-//
-//extension DecodingError.Context {
-//    static func description(_ string: String) -> DecodingError.Context {
-//        return DecodingError.Context(codingPath: [], debugDescription: string)
-//    }
-//
-//    static func incompatible(
-//        with value: String
-//        ) -> DecodingError.Context {
-//        return .description("incompatible with \(value)")
-//    }
-//
-//    static func incompatible<T: CodingKey>(
-//        with value: String, for key: T
-//        ) -> DecodingError.Context {
-//        return .description("incompatible with \(value) for \(key)")
-//    }
-//}
-//
-//extension DecodingError.Context: ExpressibleByStringLiteral {
-//    public init(stringLiteral value: String) {
-//        self.codingPath = []
-//        self.debugDescription = value
-//        self.underlyingError = nil
-//    }
-//}
-//
-//extension DecodingError.Context: ExpressibleByNilLiteral {
-//    public init(nilLiteral: ()) {
-//        self.codingPath = []
-//        self.debugDescription = ""
-//        self.underlyingError = nil
-//    }
-//}
 
 // MARK: - CommandType
 extension ViewCommands {

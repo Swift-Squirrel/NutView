@@ -14,16 +14,14 @@ protocol LexicalAnalysis: AnyObject {
     func nextCommand() throws -> CommandToken?
     func nextToken() -> Token?
     func getNextToken() -> Token?
-//    func nextParentleses() throws -> Parethleses
-//    func readLeftParenthles() throws
-    func readExpression(until: NutLexical.Buffer.StopChar...) throws -> (Token, NutLexical.Buffer.StopChar)
-//    func nextRightParenthles() throws -> RightParenthles
+    func readExpression(until: NutLexical.Buffer.StopChar...)
+        throws -> (Token, NutLexical.Buffer.StopChar)
 }
 
-class NutLexical {
+/// Lexical analysis
+public class NutLexical {
+    private var buffer: Buffer
 
-    var buffer: Buffer
-    
     init(content: String) {
         buffer = Buffer(content: content)
     }
@@ -147,7 +145,8 @@ extension NutLexical: LexicalAnalysis {
                     }
                     return CommandToken(type: .elseIf, line: line)
                 default:
-                    throw LexicalError.unknownCommand("\(type) \(els.value) \(tok.value)", line: tok.line)
+                    throw LexicalError.unknownCommand("\(type) \(els.value) \(tok.value)",
+                        line: tok.line)
                 }
             } else {
                 return CommandToken(type: .blockEnd, line: line)
@@ -159,105 +158,72 @@ extension NutLexical: LexicalAnalysis {
         return CommandToken(type: cmd, line: line)
     }
 
-//    func nextParentleses() throws -> Parethleses {
-//        guard let lp = buffer.next() else {
-//            throw NutLexical.LexicalError.unexpectedEnd(expecting: "(")
-//        }
-//        let line = buffer.line
-//        guard lp == "(" else {
-//            throw NutLexical.LexicalError.unexpectedCharacter(expected: "(", got: lp, atLine: line)
-//        }
-//        var res = ""
-//        var counter = 1
-//        while counter > 0 {
-//            guard let str = buffer.read(until: .leftParentless, .rightParentles,
-//                                        skipString: true) else {
-//
-//                throw NutLexical.LexicalError.unexpectedEnd(expecting: ")")
-//            }
-//            if str.stopped == .leftParentless {
-//                counter += 1
-//            } else {
-//                counter -= 1
-//            }
-//            res += str.value
-//        }
-//        let _ = buffer.next()
-//        return Parethleses(value: res, line: line)
-//    }
-//
-//    func readLeftParenthles() throws {
-//        guard let nextChar = buffer.getNext() else {
-//            throw NutLexical.LexicalError.unexpectedEnd(expecting: "(")
-//        }
-//        guard nextChar == "(" else {
-//            throw NutLexical.LexicalError.unexpectedCharacter(expected: "(", got: nextChar, atLine: buffer.line)
-//        }
-//        let _ = buffer.next()
-//    }
-//
-    func readExpression(until stopChars: NutLexical.Buffer.StopChar...) throws -> (Token, NutLexical.Buffer.StopChar) {
-        buffer.skipWhite()
-        let line = buffer.line
-        var stop: NutLexical.Buffer.StopChar? = nil
-        var result = ""
-        var inString = false
-        var leftPars = 0
-        repeat {
-            guard let char = buffer.next() else {
-                let stopCharsDesc = stopChars.map { $0.rawValue.description }.joined(separator: ", ")
-                throw NutLexical.LexicalError.unexpectedEnd(expecting: "one of [\(stopCharsDesc)]")
-            }
-            if char == "(" {
-                leftPars += 1
-            } else if char == ")" {
-                leftPars -= 1
-            }
-            if !inString {
-                if char == ")" {
-                    if stopChars.contains(.rightParentles) && leftPars == -1 {
-                        stop = .rightParentles
+    func readExpression(until stopChars: NutLexical.Buffer.StopChar...)
+        throws -> (Token, NutLexical.Buffer.StopChar) {
+
+            buffer.skipWhite()
+            let line = buffer.line
+            var stop: NutLexical.Buffer.StopChar? = nil
+            var result = ""
+            var inString = false
+            var leftPars = 0
+            repeat {
+                guard let char = buffer.next() else {
+                    let stopCharsDesc = stopChars.map { $0.rawValue.description }
+                        .joined(separator: ", ")
+
+                    throw NutLexical.LexicalError.unexpectedEnd(
+                        expecting: "one of [\(stopCharsDesc)]")
+                }
+                if char == "(" {
+                    leftPars += 1
+                } else if char == ")" {
+                    leftPars -= 1
+                }
+                if !inString {
+                    if char == ")" {
+                        if stopChars.contains(.rightParentles) && leftPars == -1 {
+                            stop = .rightParentles
+                        } else {
+                            result.append(char.description)
+                        }
+                    } else if let stopChar = Buffer.StopChar(rawValue: char),
+                        stopChars.contains(stopChar) {
+
+                        stop = stopChar
                     } else {
                         result.append(char.description)
                     }
-                } else if let stopChar = Buffer.StopChar(rawValue: char), stopChars.contains(stopChar) {
-                    stop = stopChar
                 } else {
                     result.append(char.description)
                 }
-            } else {
-                result.append(char.description)
+                if char == "\"" {
+                    inString = !inString
+                }
+            } while stop == nil
+            guard !result.isEmpty else {
+                throw NutLexical.LexicalError.unexpectedCharacter(expected: "Identifier",
+                                                                  got: stop!.rawValue,
+                                                                  atLine: buffer.line)
             }
-            if char == "\"" {
-                inString = !inString
-            }
-        } while stop == nil
-        guard !result.isEmpty else {
-            throw NutLexical.LexicalError.unexpectedCharacter(expected: "Identifier", got: stop!.rawValue, atLine: buffer.line)
-        }
-        return (Token(id: .expression, value: result, line: line), stop!)
+            return (Token(id: .expression, value: result, line: line), stop!)
     }
-
-
-//    func nextRightParenthles() throws -> RightParenthles {
-//        guard let nextChar = buffer.getNext() else {
-//            throw NutLexical.LexicalError.unexpectedEnd(expecting: ")")
-//        }
-//        guard nextChar == "(" else {
-//            throw NutLexical.LexicalError.unexpectedCharacter(expected: ")", got: nextChar, atLine: buffer.line)
-//        }
-//        return RightParenthles(line: buffer.line)
-//    }
 }
 
 // MARK: - Errors
-extension NutLexical {
-    enum LexicalError: SquirrelError {
+public extension NutLexical {
+    /// Lexical error
+    ///
+    /// - unexpectedEnd: Unexpected end of file while reading
+    /// - unknownCommand: unknown command
+    /// - unexpectedCharacter: unexpected character while reading
+    public enum LexicalError: SquirrelError {
         case unexpectedEnd(expecting: String)
         case unknownCommand(String, line: Int)
         case unexpectedCharacter(expected: String, got: Character, atLine: Int)
 
-        var description: String {
+        /// Error description
+        public var description: String {
             switch self {
             case .unexpectedEnd(let expecting):
                 return "Unexpected end file - expecting \(expecting) but got EOF"
@@ -287,13 +253,12 @@ extension NutLexical {
         private let count: Int
         private(set) var line: Int
         private var indexes: Stack<(index: Int, line: Int)>
-//        private var prevChar: Character? = nil
 
         mutating func next() -> Element? {
             guard index < content.count else {
                 return nil
             }
-            if index > content.startIndex && content[index - 1] == StopChar.lf.rawValue{
+            if index > content.startIndex && content[index - 1] == StopChar.lf.rawValue {
                 line += 1
             }
             let char = content[index]
@@ -315,13 +280,6 @@ extension NutLexical {
             return content[index + 1]
         }
 
-//        func getPrev() -> Element? {
-//            guard index - 1 > -1 else {
-//                return nil
-//            }
-//            return content[index]
-//        }
-
         mutating func skipWhite() {
             let whiteChars: Set<Character> = ["\n", " ", "\t"]
             while let char = getNext() {
@@ -332,6 +290,7 @@ extension NutLexical {
             }
         }
 
+        // swiftlint:disable:next nesting
         enum StopChar: Character {
             case backSlash = "\\"
             case lf = "\n"
@@ -347,8 +306,11 @@ extension NutLexical {
 
         mutating func read(until stopChars: StopChar..., skipString: Bool = false)
             -> (value: String, stopped: StopChar)? {
-                guard let res = read(until: stopChars, skipString: skipString, allowEOF: false) else {
-                    return nil
+                guard let res = read(until: stopChars,
+                                     skipString: skipString,
+                                     allowEOF: false) else {
+
+                                        return nil
                 }
                 assert(res.stopped != nil, "Read with allowEOF == false read until EOF")
                 return (res.value, res.stopped!)
@@ -358,13 +320,17 @@ extension NutLexical {
             return read(until: stopChar, skipString: skipString)?.value
         }
 
-        mutating func readEOF(until stopChars: StopChar..., skipString: Bool = false) -> (value: String, stopped: StopChar?) {
-            let res = read(until: stopChars, skipString: skipString, allowEOF: true)
-            assert(res != nil, "Read with allowEOF == true returns nil")
-            return res!
+        mutating func readEOF(until stopChars: StopChar..., skipString: Bool = false)
+            -> (value: String, stopped: StopChar?) {
+
+                let res = read(until: stopChars, skipString: skipString, allowEOF: true)
+                assert(res != nil, "Read with allowEOF == true returns nil")
+                return res!
         }
 
-        private mutating func read(until stopChars: [StopChar], skipString: Bool = false, allowEOF: Bool) -> (value: String, stopped: StopChar?)? {
+        private mutating func read(until stopChars: [StopChar],
+                                   skipString: Bool = false,
+                                   allowEOF: Bool) -> (value: String, stopped: StopChar?)? {
             guard !stopChars.isEmpty else {
                 return nil
             }

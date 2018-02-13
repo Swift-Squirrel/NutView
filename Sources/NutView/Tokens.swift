@@ -29,6 +29,7 @@ struct Token: CustomStringConvertible, Equatable {
         return "\(line): <\(id.rawValue)> - \(value)"
     }
 
+    // swiftlint:disable:next operator_whitespace
     static func ==(lhs: Token, rhs: Token) -> Bool {
         guard lhs.id == rhs.id else {
             return false
@@ -49,6 +50,7 @@ enum NextTokenType {
 }
 
 struct HTMLToken: Equatable, CustomStringConvertible {
+    // swiftlint:disable:next operator_whitespace
     static func ==(lhs: HTMLToken, rhs: HTMLToken) -> Bool {
         guard lhs.value == rhs.value else {
             return false
@@ -73,6 +75,7 @@ struct CommandToken: Equatable, CustomStringConvertible {
         return "\(line): <\(type.rawValue)>"
     }
 
+    // swiftlint:disable:next operator_whitespace
     static func ==(lhs: CommandToken, rhs: CommandToken) -> Bool {
         guard lhs.type == rhs.type else {
             return false

@@ -52,12 +52,18 @@ class NutParser: NutParserProtocol {
 }
 
 private extension NutParser {
+    // swiftlint:disable function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     func parseCommands() throws -> [Command] {
+        // swiftlint:enable function_body_length
 
+        // swiftlint:disable:next nesting
         enum ContextType {
             case main
             case `if`(conditions: [ViewCommands.If.ThenBlock.ConditionType], line: Int)
-            case elseIf(ifCmd: ViewCommands.If, conditions: [ViewCommands.If.ThenBlock.ConditionType], line: Int)
+            case elseIf(ifCmd: ViewCommands.If,
+                        conditions: [ViewCommands.If.ThenBlock.ConditionType],
+                        line: Int)
             case `else`(ifCmd: ViewCommands.If, line: Int)
             case `for`(key: String?, value: String, collection: String, line: Int)
         }
@@ -74,7 +80,8 @@ private extension NutParser {
                 body.append(command)
             case .command:
                 guard let cmd = try lexical.nextCommand() else {
-                    throw NutParserError.incompleteCommand(fileName: name, expecting: "tokenId.rawValue")
+                    throw NutParserError.incompleteCommand(fileName: name,
+                                                           expecting: "tokenId.rawValue")
                 }
                 let line = cmd.line
                 switch cmd.type {
@@ -99,7 +106,10 @@ private extension NutParser {
                 case .`for`:
                     let forData = try parseFor(lexical: lexical)
                     context.push((currentContext, body))
-                    currentContext = .`for`(key: forData.key, value: forData.value, collection: forData.collection, line: line)
+                    currentContext = .`for`(key: forData.key,
+                                            value: forData.value,
+                                            collection: forData.collection,
+                                            line: line)
                     body.removeAll()
                 case .`if`:
                     let conditions = try parseIf(lexical: lexical)
@@ -109,7 +119,9 @@ private extension NutParser {
                 case .elseIf:
                     switch currentContext {
                     case .`if`(let conditions, let ifLine):
-                        let ifCmd = ViewCommands.If(conditions: conditions, then: body, line: ifLine)
+                        let ifCmd = ViewCommands.If(conditions: conditions,
+                                                    then: body,
+                                                    line: ifLine)
                         let conditions = try parseIf(lexical: lexical)
                         currentContext = .`elseIf`(ifCmd: ifCmd, conditions: conditions, line: line)
                         body.removeAll()
@@ -119,15 +131,20 @@ private extension NutParser {
                         currentContext = .`elseIf`(ifCmd: ifCmd, conditions: conditions, line: line)
                         body.removeAll()
                     case .main, .`else`, .for:
-                        throw NutParserError.syntax(fileName: name, context: "Missing if <expression> { for closing \(cmd.type)", line: line)
+                        let context = "Missing if <expression> { for closing \(cmd.type)"
+                        throw NutParserError.syntax(fileName: name, context: context, line: line)
                     }
                 case .blockEnd:
                     let blockCommand: Command
                     switch currentContext {
                     case .main:
-                        throw NutParserError.syntax(fileName: name, context: "Unexpected block end '\(cmd.type)'", line: line)
+                        throw NutParserError.syntax(fileName: name,
+                                                    context: "Unexpected block end '\(cmd.type)'",
+                                                    line: line)
                     case .`if`(let conditions, let line):
-                        blockCommand = ViewCommands.If(conditions: conditions, then: body, line: line)
+                        blockCommand = ViewCommands.If(conditions: conditions,
+                                                       then: body,
+                                                       line: line)
                     case .elseIf(var ifCmd, let conditions, let line):
                         ifCmd.add(conditions: conditions, then: body, line: line)
                         blockCommand = ifCmd
@@ -135,7 +152,11 @@ private extension NutParser {
                         ifCmd.setElse(body: body)
                         blockCommand = ifCmd
                     case .`for`(let key, let value, let collection, let line):
-                        blockCommand = ViewCommands.For(key: key, value: value, collection: collection, commands: body, line: line)
+                        blockCommand = ViewCommands.For(key: key,
+                                                        value: value,
+                                                        collection: collection,
+                                                        commands: body,
+                                                        line: line)
                     }
                     (currentContext, body) = context.pop()!
                     if let ifCmd = blockCommand as? ViewCommands.If {
@@ -151,9 +172,12 @@ private extension NutParser {
                 case .`else`:
                     switch currentContext {
                     case .main, .`else`, .for:
-                        throw NutParserError.syntax(fileName: name, context: "Missing if <expression> { for closing \(cmd.type)", line: line)
+                        let context = "Missing if <expression> { for closing \(cmd.type)"
+                        throw NutParserError.syntax(fileName: name, context: context, line: line)
                     case .`if`(let conditions, let ifLine):
-                        let ifCmd = ViewCommands.If(conditions: conditions, then: body, line: ifLine)
+                        let ifCmd = ViewCommands.If(conditions: conditions,
+                                                    then: body,
+                                                    line: ifLine)
                         currentContext = .`else`(ifCmd: ifCmd, line: line)
                         body.removeAll()
                     case .elseIf(var ifCmd, let conditions, let ifLine):
@@ -171,45 +195,54 @@ private extension NutParser {
         case .main:
             break
         case .`if`(_, let line):
-            throw NutParserError.syntax(fileName: name, context: "<if> command is not closed", line: line)
+            let context = "<if> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
         case .elseIf(_, _, let line):
-            throw NutParserError.syntax(fileName: name, context: "<else if> command is not closed", line: line)
+            let context = "<else if> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
         case .`else`(_, let line):
-            throw NutParserError.syntax(fileName: name, context: "<else> command is not closed", line: line)
+            let context = "<else> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
         case .for(_, _, _, let line):
-            throw NutParserError.syntax(fileName: name, context: "<for> command is not closed", line: line)
+            let context = "<for> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
         }
         return body
     }
 
-    func parseFor(lexical: LexicalAnalysis) throws -> (key: String?, value: String, collection: String) {
-        guard let tok = lexical.nextToken() else {
-            throw NutParserError.incompleteCommand(fileName: name, expecting: "variable name")
-        }
-        let key: String?
-        let value: String
-        switch tok.id {
-        case .text:
-            key = nil
-            try  check(variable: tok.value, line: tok.line, allowNesting: false)
-            value = tok.value
-        case .leftParentles:
-            let keyToken = try checkNextToken(lexical: lexical, tokenId: .text)
-            try check(variable: keyToken.value, line: keyToken.line, allowNesting: false)
-            key = keyToken.value
-            let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
-            let valueToken = try checkNextToken(lexical: lexical, tokenId: .text)
-            try check(variable: valueToken.value, line: valueToken.line, allowNesting: false)
-            value = valueToken.value
-            let _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
-        default:
-            throw NutParserError.syntax(fileName: name, context: "Expecting 'variable name' or 'tupple' but '\(tok)' found", line: tok.line)
-        }
-        let _ = try checkNextToken(lexical: lexical, tokenId: .text, expValue: "in")
-        let collectionToken = try checkNextToken(lexical: lexical, tokenId: .text)
-        try check(variable: collectionToken.value, line: collectionToken.line, allowNesting: true)
-        let _ = try checkNextToken(lexical: lexical, tokenId: .leftCurly)
-        return (key, value, collectionToken.value)
+    func parseFor(lexical: LexicalAnalysis)
+        throws -> (key: String?, value: String, collection: String) {
+
+            guard let tok = lexical.nextToken() else {
+                throw NutParserError.incompleteCommand(fileName: name, expecting: "variable name")
+            }
+            let key: String?
+            let value: String
+            switch tok.id {
+            case .text:
+                key = nil
+                try  check(variable: tok.value, line: tok.line, allowNesting: false)
+                value = tok.value
+            case .leftParentles:
+                let keyToken = try checkNextToken(lexical: lexical, tokenId: .text)
+                try check(variable: keyToken.value, line: keyToken.line, allowNesting: false)
+                key = keyToken.value
+                let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
+                let valueToken = try checkNextToken(lexical: lexical, tokenId: .text)
+                try check(variable: valueToken.value, line: valueToken.line, allowNesting: false)
+                value = valueToken.value
+                let _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
+            default:
+                let context = "Expecting 'variable name' or 'tupple' but '\(tok)' found"
+                throw NutParserError.syntax(fileName: name, context: context, line: tok.line)
+            }
+            let _ = try checkNextToken(lexical: lexical, tokenId: .text, expValue: "in")
+            let collectionToken = try checkNextToken(lexical: lexical, tokenId: .text)
+            try check(variable: collectionToken.value,
+                      line: collectionToken.line,
+                      allowNesting: true)
+            let _ = try checkNextToken(lexical: lexical, tokenId: .leftCurly)
+            return (key, value, collectionToken.value)
     }
 
     func parseIf(lexical: LexicalAnalysis) throws -> [ViewCommands.If.ThenBlock.ConditionType] {
@@ -217,7 +250,8 @@ private extension NutParser {
         var conditions = [ViewCommands.If.ThenBlock.ConditionType]()
         repeat {
             guard let letToken = lexical.getNextToken() else {
-                throw NutParserError.incompleteCommand(fileName: name, expecting: "let or expression")
+                throw NutParserError.incompleteCommand(fileName: name,
+                                                       expecting: "let or expression")
             }
             let variable: String?
             if letToken.id == .text && letToken.value == "let" {
@@ -277,7 +311,9 @@ private extension NutParser {
         let (expr, stop) = try lexical.readExpression(until: .comma, .rightParentles)
         let formatExp: ViewCommands.RawValue?
         if stop == .comma {
-            let _ = try checkNextToken(lexical: lexical, tokenId: .namedArgument, expValue: "format")
+            let _ = try checkNextToken(lexical: lexical,
+                                       tokenId: .namedArgument,
+                                       expValue: "format")
             let (format, _) = try lexical.readExpression(until: .rightParentles)
             formatExp = ViewCommands.RawValue(expression: format.value, line: format.line)
         } else {
@@ -287,21 +323,29 @@ private extension NutParser {
         return ViewCommands.Date(date: exprValue, format: formatExp, line: line)
     }
 
-    func checkNextToken(lexical: LexicalAnalysis, tokenId: Token.TokenType, expValue: String? = nil) throws -> Token {
+    func checkNextToken(lexical: LexicalAnalysis,
+                        tokenId: Token.TokenType,
+                        expValue: String? = nil) throws -> Token {
+
         guard let token = lexical.nextToken() else {
             throw NutParserError.incompleteCommand(fileName: name, expecting: tokenId.rawValue)
         }
         guard token.id == tokenId else {
-            throw NutParserError.syntax(fileName: name, context: "Expecting '\(tokenId.rawValue)' but '\(token.id.rawValue)' with value '\(token.value)' found", line: token.line)
+            let context = "Expecting '\(tokenId.rawValue)'"
+                + " but '\(token.id.rawValue)' with value '\(token.value)' found"
+            throw NutParserError.syntax(fileName: name, context: context, line: token.line)
         }
         if let expValue = expValue {
             guard token.value == expValue else {
-                throw NutParserError.syntax(fileName: name, context: "Expecting value '\(expValue)' for token '\(tokenId)' but '\(token)' found", line: token.line)
+                let context = "Expecting value '\(expValue)' for token '\(tokenId)'"
+                    + "but '\(token)' found"
+                throw NutParserError.syntax(fileName: name, context: context, line: token.line)
             }
         }
         return token
     }
     func check(variable: String, line: Int, allowNesting: Bool) throws {
+        // swiftlint:disable:next nesting
         enum State {
             case start
             case inVariable
@@ -315,7 +359,8 @@ private extension NutParser {
                 case "a"..."z", "A"..."Z", "_":
                     state = .inVariable
                 default:
-                    throw NutParserError.syntax(fileName: name, context: "Identifier name can not starts with '\(char)'", line: line)
+                    let context = "Identifier name can not starts with '\(char)'"
+                    throw NutParserError.syntax(fileName: name, context: context, line: line)
                 }
             case .inVariable:
                 switch char {
@@ -323,16 +368,19 @@ private extension NutParser {
                     break
                 case ".":
                     guard allowNesting else {
-                        throw NutParserError.syntax(fileName: name, context: "Expecting identifier without nesting", line: line)
+                        let context = "Expecting identifier without nesting"
+                        throw NutParserError.syntax(fileName: name, context: context, line: line)
                     }
                     state = .start
                 default:
-                    throw NutParserError.syntax(fileName: name, context: "Unsupported character '\(char)' for identifier", line: line)
+                    let context = "Unsupported character '\(char)' for identifier"
+                    throw NutParserError.syntax(fileName: name, context: context, line: line)
                 }
             }
         }
         guard state == .inVariable else {
-            throw NutParserError.syntax(fileName: name, context: "'\(variable)' is not valid identifier", line: line)
+            let context = "'\(variable)' is not valid identifier"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
         }
     }
 }

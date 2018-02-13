@@ -6,6 +6,8 @@
 //
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import Evaluation
 import SquirrelCore
@@ -81,7 +83,7 @@ class NutInterpreter: NutInterpreterProtocol {
         }
     }
 
-    fileprivate func run(head: [HeadCommand]) throws -> String {
+    private func run(head: [HeadCommand]) throws -> String {
         var res = ""
         for token in head {
             switch token {
@@ -100,7 +102,10 @@ class NutInterpreter: NutInterpreterProtocol {
         let layout: String?
     }
 
-    fileprivate func run(body: [Command]) throws -> ViewDescriptor {
+    // swiftlint:disable function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
+    private func run(body: [Command]) throws -> ViewDescriptor {
+        // swiftlint:enable function_body_length
         var res = ""
         var heads = [HeadCommand]()
         var layout: String? = nil
@@ -126,7 +131,8 @@ class NutInterpreter: NutInterpreterProtocol {
                 res += try parse(date: date)
             case let insertView as ViewCommands.InsertView:
                 guard let viewContent = self.viewContent else {
-                    throw NutInterpreterError.recursiveView(fileName: currentName, line: insertView.line)
+                    throw NutInterpreterError.recursiveView(fileName: currentName,
+                                                            line: insertView.line)
                 }
                 res += viewContent
             case let subviewToken as ViewCommands.Subview:
@@ -261,7 +267,8 @@ extension NutInterpreter {
         }
         let format: ViewCommands.RawValue
         if dateToken.format == nil {
-            format = ViewCommands.RawValue(expression: "\"\(NutConfig.dateDefaultFormat)\"", line: dateToken.line)
+            format = ViewCommands.RawValue(expression: "\"\(NutConfig.dateDefaultFormat)\"",
+                                           line: dateToken.line)
         } else {
             format = dateToken.format!
         }
@@ -319,7 +326,11 @@ extension NutInterpreter {
         return ViewDescriptor(content: res, head: heads, layout: layout)
     }
 
+    // swiftlint:disable function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     private func parse(if ifToken: ViewCommands.If) throws -> ViewDescriptor {
+        // swiftlint:enable function_body_length
+
         for thenBlock in ifToken.thens {
             guard !thenBlock.conditions.isEmpty else {
                 continue
@@ -333,13 +344,22 @@ extension NutInterpreter {
                     do {
                         any = try condition.expression.evaluate(with: data)
                     } catch let error as EvaluationError {
-                        throw NutInterpreterError.evaluation(fileName: currentName, expression: condition.expression, causedBy: error, line: condition.line)
+                        throw NutInterpreterError.evaluation(fileName: currentName,
+                                                             expression: condition.expression,
+                                                             causedBy: error,
+                                                             line: condition.line)
                     }
                     guard let value = any else {
-                        throw NutInterpreterError.wrongValue(fileName: currentName, expecting: "Bool", got: "nil", line: condition.line)
+                        throw NutInterpreterError.wrongValue(fileName: currentName,
+                                                             expecting: "Bool",
+                                                             got: "nil",
+                                                             line: condition.line)
                     }
                     guard let bool = value as? Bool else {
-                        throw NutInterpreterError.wrongValue(fileName: currentName, expecting: "Bool", got: value, line: condition.line)
+                        throw NutInterpreterError.wrongValue(fileName: currentName,
+                                                             expecting: "Bool",
+                                                             got: value,
+                                                             line: condition.line)
                     }
                     superCondition = superCondition && bool
                 case .cast(let variable, let condition):
@@ -347,7 +367,10 @@ extension NutInterpreter {
                     do {
                         any = try condition.expression.evaluate(with: data)
                     } catch let error as EvaluationError {
-                        throw NutInterpreterError.evaluation(fileName: currentName, expression: condition.expression, causedBy: error, line: condition.line)
+                        throw NutInterpreterError.evaluation(fileName: currentName,
+                                                             expression: condition.expression,
+                                                             causedBy: error,
+                                                             line: condition.line)
                     }
                     if let value = any {
                         variables.append((variable, value))

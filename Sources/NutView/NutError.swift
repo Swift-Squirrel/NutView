@@ -9,15 +9,25 @@
 import SquirrelCore
 import Evaluation
 
+/// Parser error
 public struct NutParserError: SquirrelError {
-    enum ErrorKind {
+    /// Error kinds
+    ///
+    /// - incompleteCommand: Command is incomplete
+    /// - syntaxError: syntax error
+    /// - lexical: error caused by lexical error
+    /// - unknownError: error caused by error from different library
+    public enum ErrorKind {
         case incompleteCommand(expecting: String)
         case syntaxError(context: String, line: Int)
         case lexical(error: NutLexical.LexicalError)
         case unknownError(cousingError: Error)
     }
-    let name: String
-    let kind: ErrorKind
+    /// File name
+    public let name: String
+    /// Error kind
+    public let kind: ErrorKind
+    /// Description of error
     public var description: String {
         let des: String
         switch kind {
@@ -33,8 +43,10 @@ public struct NutParserError: SquirrelError {
         return "Error while parsing file \(name), description: \(des)"
     }
 
-    static func incompleteCommand(fileName: String, expecting expectation: String) -> NutParserError {
-        return NutParserError(name: fileName, kind: .incompleteCommand(expecting: expectation))
+    static func incompleteCommand(fileName: String, expecting expectation: String)
+        -> NutParserError {
+
+            return NutParserError(name: fileName, kind: .incompleteCommand(expecting: expectation))
     }
 
     static func syntax(fileName: String, context: String, line: Int) -> NutParserError {
@@ -75,12 +87,23 @@ struct NutInterpreterError: SquirrelError {
         return NutInterpreterError(fileName: fileName, kind: .recursiveView, line: line)
     }
 
-    static func evaluation(fileName: String, expression: String, causedBy: EvaluationError, line: Int) -> NutInterpreterError {
-        return NutInterpreterError(fileName: fileName, kind: .evaluationError(expression: expression, error: causedBy), line: line)
+    static func evaluation(fileName: String,
+                           expression: String,
+                           causedBy: EvaluationError,
+                           line: Int) -> NutInterpreterError {
+
+        return NutInterpreterError(fileName: fileName,
+                                   kind: .evaluationError(expression: expression, error: causedBy),
+                                   line: line)
     }
 
-    static func wrongValue(fileName: String, expecting: String, got: Any, line: Int) -> NutInterpreterError {
-        return NutInterpreterError(fileName: fileName, kind: .wrongValue(expecting: expecting, got: got), line: line)
+    static func wrongValue(fileName: String,
+                           expecting: String,
+                           got: Any,
+                           line: Int) -> NutInterpreterError {
+
+        return NutInterpreterError(fileName: fileName,
+                                   kind: .wrongValue(expecting: expecting, got: got), line: line)
     }
 }
 
@@ -308,11 +331,18 @@ extension NutParserError: SquirrelHTMLConvertibleError {
         case .lexical(let error):
             switch error {
             case .unexpectedEnd(let expecting):
-                html = temp(title: "Unexpected EOF", body: "Unexpected EOF, expecting \(expecting)", line: nil)
+                html = temp(title: "Unexpected EOF",
+                            body: "Unexpected EOF, expecting \(expecting)",
+                            line: nil)
             case .unknownCommand(let command, let line):
-                html = temp(title: "Unknown command \(command.escaped)", body: "Unknown command <b>'\(command.escaped)'</b>", line: line)
+                html = temp(title: "Unknown command \(command.escaped)",
+                            body: "Unknown command <b>'\(command.escaped)'</b>",
+                            line: line)
             case .unexpectedCharacter(let expected, let got, let atLine):
-                html = temp(title: "Unexpected character \(got.description.escaped)", body: "Unexpected character, expecting: '\(expected) but got \(got)'".escaped, line: atLine)
+                let body = "Unexpected character, expecting: '\(expected) but got \(got)'".escaped
+                html = temp(title: "Unexpected character \(got.description.escaped)",
+                            body: body,
+                            line: atLine)
             }
         case .unknownError:
             html = temp(title: "Unknown error", body: description, line: nil)
@@ -338,11 +368,16 @@ extension NutInterpreterError: SquirrelHTMLConvertibleError {
         let html: String
         switch kind {
         case .wrongValue(let expecting, let got):
-            html = temp(title: "Wrong value", body: "Wrong value in expression, expecting: <i>'\(expecting.escaped)'</i> but got <i>'\(String(describing: got).escaped)'</i>")
+            let body = "Wrong value in expression, expecting: <i>'\(expecting.escaped)'</i>"
+                + " but got <i>'\(String(describing: got).escaped)'</i>"
+            html = temp(title: "Wrong value", body: body)
         case .evaluationError(let expression, let error):
-            html = temp(title: "Evaluation error", body: "Evaluation error while evaluating <i>'\(expression.escaped)'</i>, error description: \(error.description.escaped)")
+            let body = "Evaluation error while evaluating <i>'\(expression.escaped)'</i>,"
+                + " error description: \(error.description.escaped)"
+            html = temp(title: "Evaluation error", body: body)
         case .recursiveView:
-            html = temp(title: "Recursive View()", body: "View() command used in View or Subview before View has been fully resolved")
+            let body = "View() command used in View or Subview before View has been fully resolved"
+            html = temp(title: "Recursive View()", body: body)
         }
         return html
     }
