@@ -121,20 +121,48 @@ class ViewTests: XCTestCase {
         XCTAssertEqual(interpreted, cnt)
     }
 
+    func testIndex() {
+        let data: [String: Any] = [
+            "username": "Tom",
+            "age": 41
+        ]
+
+        let name = "Index"
+        XCTAssertNoThrow(try View(name: name, with: data))
+        guard let view = try? View(name: name, with: data) else {
+            XCTFail()
+            return
+        }
+
+        XCTAssertNoThrow(try view.getContent())
+
+        guard let interpreted = try? view.getContent() else {
+            XCTFail()
+            return
+        }
+
+        let fileName = "\(name).html"
+        guard let cnt: String = try? (expectedHTMLs + fileName).read() else {
+            XCTFail("Can not read \(fileName)")
+            return
+        }
+        XCTAssertEqual(interpreted, cnt)
+    }
+
     func testMissingVariable() {
         let name = "Posts"
         let view = View(name: name)
 
-        var expected = NutParserError(kind: .missingValue(for: "posts"), line: 13)
+        var expected = OldNutParserError(kind: .missingValue(for: "posts"), line: 13)
         expected.name = "Views/Posts.nut"
         XCTAssertTrue(checkError(for: view, expect: expected), "Missing value for 'posts'")
     }
 
-    private func checkError(for view: View, expect: NutParserError) -> Bool {
+    private func checkError(for view: View, expect: OldNutParserError) -> Bool {
         do {
             let cnt = try view.getContent()
             XCTFail(cnt)
-        } catch let error as NutParserError {
+        } catch let error as OldNutParserError {
             XCTAssertEqual(expect.description, error.description)
             if expect.description == error.description {
                 return true
@@ -148,6 +176,7 @@ class ViewTests: XCTestCase {
     static let allTests = [
         ("testPosts", testPosts),
         ("testPost", testPost),
+        ("testIndex", testIndex),
         ("testMissingVariable", testMissingVariable)
     ]
 }

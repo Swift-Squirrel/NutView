@@ -8,24 +8,25 @@
 
 import Foundation
 import PathKit
-import Cache
+import SquirrelCache
 
 protocol NutResolverProtocol {
-    static func viewToken(for name: String) throws -> ViewToken
+    static func viewCommands(for name: String) throws -> ViewCommands
 }
 
 struct NutResolver: NutResolverProtocol {
-    private static var cache: SpecializedCache<ViewToken> {
+    private static var cache: SpecializedCache<ViewCommands> {
         return NutConfig.NutViewCache.cache
     }
-    static func viewToken(for name: String) throws -> ViewToken {
+    static func viewCommands(for name: String) throws -> ViewCommands {
         let nutName = name.replacingAll(matching: "\\.", with: "/") + ".nut"
         let fruitName = name + ".fruit"
+        let fruitParser: FruitParserProtocol.Type = FruitParser.self
 
         let fruit = NutConfig.fruits + fruitName
         let nut = NutConfig.nuts + nutName
         let fruitValid = isValid(fruit: fruit, nut: nut)
-        if let token = cache["name"], fruitValid {
+        if let token = cache[name], fruitValid {
             return token
         }
 
@@ -33,29 +34,30 @@ struct NutResolver: NutResolverProtocol {
             throw NutError(kind: .notExists(name: nutName))
         }
 
-        let vToken: ViewToken
+        let vCommands: ViewCommands
 
         if fruit.exists && fruitValid {
-            let content: String = try fruit.read()
-            let parser = FruitParser(content: content)
-            vToken = parser.tokenize()
+            let content = try fruit.read()
+            vCommands = try fruitParser.decodeCommands(data: content)
+
         } else {
             let content: String = try nut.read()
             let parser = NutParser(content: content, name: nutName)
-            vToken = try parser.tokenize()
+            vCommands = try parser.getCommands()
 
-            let serialized = parser.jsonSerialized
-            if fruit.exists {
-                if let cnt: String = try? fruit.read() {
-                    guard cnt != serialized else {
-                        return vToken
+            if let fruitContent = try? fruitParser.encodeCommands(vCommands) {
+                if fruit.exists {
+                    if let cnt = try? fruit.read() {
+                        guard cnt != fruitContent else {
+                            return vCommands
+                        }
                     }
                 }
+                try? fruit.write(fruitContent)
             }
-            try? fruit.write(serialized)
         }
-        try? cache.addObject(vToken, forKey: name)
-        return vToken
+        try? cache.addObject(vCommands, forKey: name)
+        return vCommands
     }
 
     private static func isValid(fruit: Path, nut: Path) -> Bool {
@@ -76,5 +78,4 @@ struct NutResolver: NutResolverProtocol {
         }
         return attributes[FileAttributeKey.modificationDate] as? Date
     }
-
 }

@@ -34,68 +34,60 @@ class NutResolverTests: XCTestCase {
     func testSuccessResolingPosts() {
         let resolver: NutResolverProtocol.Type = NutResolver.self
 
-        XCTAssertNoThrow(try resolver.viewToken(for: "Views.Posts"))
-        guard let viewToken = try? resolver.viewToken(for: "Views.Posts") else {
+        XCTAssertNoThrow(try resolver.viewCommands(for: "Views.Posts"))
+        guard let viewToken = try? resolver.viewCommands(for: "Views.Posts") else {
             XCTFail("Views.Posts threw error")
             return
         }
 
-        XCTAssertEqual(viewToken.body.count, 5)
-        XCTAssertEqual(viewToken.head.count, 1)
-        XCTAssertEqual(viewToken.layout?.name, "Layouts.Default")
+        XCTAssertEqual(viewToken.body.count, 7)
     }
 
     func testSuccessResolingPost() {
         let resolver: NutResolverProtocol.Type = NutResolver.self
 
-        XCTAssertNoThrow(try resolver.viewToken(for: "Views.Post"))
-        guard let viewToken = try? resolver.viewToken(for: "Views.Post") else {
+        XCTAssertNoThrow(try resolver.viewCommands(for: "Views.Post"))
+        guard let viewToken = try? resolver.viewCommands(for: "Views.Post") else {
             XCTFail("Views.Post threw error")
             return
         }
 
-        XCTAssertEqual(viewToken.body.count, 7)
-        XCTAssertEqual(viewToken.head.count, 1)
-        XCTAssertEqual(viewToken.layout?.name, "Layouts.Default")
+        XCTAssertEqual(viewToken.body.count, 9)
     }
 
     func testSuccessResolingDefaultLayout() {
         let resolver: NutResolverProtocol.Type = NutResolver.self
         let name = "Layouts.Default"
 
-        XCTAssertNoThrow(try resolver.viewToken(for: name))
-        guard let viewToken = try? resolver.viewToken(for: name) else {
+        XCTAssertNoThrow(try resolver.viewCommands(for: name))
+        guard let viewToken = try? resolver.viewCommands(for: name) else {
             XCTFail("\(name) threw error")
             return
         }
 
         XCTAssertEqual(viewToken.body.count, 9)
-        XCTAssertEqual(viewToken.head.count, 0)
-        XCTAssertNil(viewToken.layout)
     }
 
     func testSuccessResolingHeadSubview() {
         let resolver: NutResolverProtocol.Type = NutResolver.self
         let name = "Subviews.Page.Head"
 
-        XCTAssertNoThrow(try resolver.viewToken(for: name))
-        guard let viewToken = try? resolver.viewToken(for: name) else {
+        XCTAssertNoThrow(try resolver.viewCommands(for: name))
+        guard let viewToken = try? resolver.viewCommands(for: name) else {
             XCTFail("\(name) threw error")
             return
         }
 
         XCTAssertEqual(viewToken.body.count, 1)
-        XCTAssertEqual(viewToken.head.count, 0)
-        XCTAssertNil(viewToken.layout)
     }
 
     func testNotExists() {
         let resolver: NutResolverProtocol.Type = NutResolver.self
         let name = "Subviews.Page.Heada"
 
-        XCTAssertThrowsError(try resolver.viewToken(for: name))
+        XCTAssertThrowsError(try resolver.viewCommands(for: name))
         do {
-            _ = try resolver.viewToken(for: name)
+            _ = try resolver.viewCommands(for: name)
             XCTFail()
         } catch let error as NutError {
             let expected = NutError(kind: .notExists(name: "Subviews/Page/Heada.nut"))

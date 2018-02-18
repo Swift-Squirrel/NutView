@@ -6,8 +6,11 @@
 //
 //
 
+// swiftlint:disable file_length
+
 import Foundation
 import Evaluation
+import SquirrelCore
 import Regex
 
 protocol NutInterpreterProtocol {
@@ -17,35 +20,43 @@ protocol NutInterpreterProtocol {
 }
 
 class NutInterpreter: NutInterpreterProtocol {
-    private let name: String
+    private var currentName: String
     private var data: [String: Any]
     private let resolver: NutResolverProtocol.Type = NutResolver.self
     private let viewName: String
 
+    private var viewContent: String? = nil
+
     required init(view name: String, with data: [String: Any]) {
-        self.name = name
+        currentName = name
         self.data = data
         viewName = "Views." + name
     }
 
-
     func resolve() throws -> String {
-        let viewToken = try resolver.viewToken(for: viewName)
+        let viewCommands = try resolver.viewCommands(for: viewName)
         do {
+            var head: [HeadCommand]
+            let descriptor = try run(body: viewCommands.body)
+            viewContent = descriptor.content
+            head = descriptor.head
+
             var result: String
-            var heads: [NutHeadProtocol]
-            if let layoutToken = viewToken.layout {
-                let layout = try resolver.viewToken(for: layoutToken.name)
-                let res = try run(body: layout.body)
-                result = res.result
-                heads = layout.head + res.heads
+            if let layout = descriptor.layout {
+                let layoutName = "Layouts.\(layout)"
+                let layoutVC = try resolver.viewCommands(for: layoutName)
+                let prevName = currentName
+                currentName = layoutName
+                let desc = try run(body: layoutVC.body)
+                currentName = prevName
+                head += desc.head
+                result = desc.content
             } else {
-                let res = try run(body: viewToken.body)
-                result = res.result
-                heads = viewToken.head + res.heads
+                result = descriptor.content
             }
-            if heads.count > 0 {
-                let headResult = try run(head: heads)
+
+            if head.count > 0 {
+                let headResult = try run(head: head)
 
                 let headTag = Regex("[\\s\\S]*<head>[\\s\\S]*</head>[\\s\\S]*")
                 if headTag.matches(result) {
@@ -63,66 +74,87 @@ class NutInterpreter: NutInterpreterProtocol {
                 }
             }
             return result
-        } catch var error as NutParserError {
+        } catch var error as OldNutParserError {
             guard error.name == nil else {
                 throw error
             }
-            error.name = viewToken.name
+            error.name = viewCommands.fileName
             throw error
         }
     }
 
-    fileprivate func run(head: [NutHeadProtocol]) throws -> String {
+    private func run(head: [HeadCommand]) throws -> String {
         var res = ""
         for token in head {
             switch token {
-            case let title as TitleToken:
+            case let title as ViewCommands.Title:
                 res += try parse(title: title)
             default:
-                res += convertToSpecialCharacters(string: "UnknownToken<" + token.id + ">\n")
+                res += convertToSpecialCharacters(string: "UnknownToken<\(token.id)>\n")
             }
         }
         return res
     }
 
-    fileprivate func run(body: [NutTokenProtocol])
-        throws -> (result: String, heads: [NutHeadProtocol]) {
+    struct ViewDescriptor {
+        let content: String
+        let head: [HeadCommand]
+        let layout: String?
+    }
 
+    // swiftlint:disable function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
+    private func run(body: [Command]) throws -> ViewDescriptor {
+        // swiftlint:enable function_body_length
         var res = ""
-        var heads = [NutHeadProtocol]()
+        var heads = [HeadCommand]()
+        var layout: String? = nil
         for token in body {
             switch token {
-            case let expression as ExpressionToken:
+            case let expression as ViewCommands.EscapedValue:
                 res += try parse(expression: expression)
-            case let expression as RawExpressionToken:
+            case let expression as ViewCommands.RawValue:
                 res += try parse(rawExpression: expression)
-            case let forIn as ForInToken:
-                let res1 = try parse(forIn: forIn)
-                heads += res1.heads
-                res += res1.result
-            case let ifToken as IfToken:
-                let res1 = try parse(if: ifToken)
-                heads += res1.heads
-                res += res1.result
-            case let text as TextToken:
+            case let forIn as ViewCommands.For:
+                let desc = try parse(forIn: forIn)
+                heads += desc.head
+                res += desc.content
+                layout = desc.layout ?? layout
+            case let ifToken as ViewCommands.If:
+                let desc = try parse(if: ifToken)
+                heads += desc.head
+                res += desc.content
+                layout = desc.layout ?? layout
+            case let text as ViewCommands.HTML:
                 res += text.value
-            case let date as DateToken:
+            case let date as ViewCommands.Date:
                 res += try parse(date: date)
-            case is InsertViewToken:
-                let viewToken = try resolver.viewToken(for: viewName)
-                let res1 = try run(body: viewToken.body)
-                heads += viewToken.head + res1.heads
-                res += res1.result
-            case let subviewToken as SubviewToken:
-                let subview = try resolver.viewToken(for: subviewToken.name)
-                let res1 = try run(body: subview.body)
-                heads += subview.head + res1.heads
-                res += res1.result
+            case let insertView as ViewCommands.InsertView:
+                guard let viewContent = self.viewContent else {
+                    throw NutInterpreterError.recursiveView(fileName: currentName,
+                                                            line: insertView.line)
+                }
+                res += viewContent
+            case let subviewToken as ViewCommands.Subview:
+                let subviewName = try parse(rawExpression: subviewToken.name)
+                let subview = try resolver.viewCommands(for: "Subviews.\(subviewName)")
+                let prevName = currentName
+                currentName = subviewName
+                let desc = try run(body: subview.body)
+                currentName = prevName
+                res += desc.content
+                heads += desc.head
+                layout = desc.layout ?? layout
+            case let layoutToken as ViewCommands.Layout:
+                let layoutName = try parse(rawExpression: layoutToken.name)
+                layout = layoutName
+            case let title as ViewCommands.Title:
+                heads.append(title)
             default:
-                res += convertToSpecialCharacters(string: "UnknownToken<" + token.id + ">\n")
+                res += convertToSpecialCharacters(string: "UnknownToken<\(token.id)>\n")
             }
         }
-        return (res, heads)
+        return ViewDescriptor(content: res, head: heads, layout: layout)
     }
 }
 
@@ -151,7 +183,7 @@ extension NutInterpreter {
 
 // Head parsing
 extension NutInterpreter {
-    fileprivate func parse(title: TitleToken) throws -> String {
+    fileprivate func parse(title: ViewCommands.Title) throws -> String {
         let expr = try parse(expression: title.expression)
         return "<title>\(expr)</title>"
     }
@@ -202,42 +234,41 @@ extension NutInterpreter {
 
 // Body parsing
 extension NutInterpreter {
-    private func parse(rawExpression expression: RawExpressionToken) throws -> String {
+    private func parse(rawExpression expression: ViewCommands.RawValue) throws -> String {
         do {
             let res = try expression.evaluate(with: data)
             let str = String(describing: unwrap(any: res ?? "nil"))
             return str
         } catch let error as EvaluationError {
-            throw NutParserError(
-                kind: .evaluationError(infix: expression.infix, message: error.description),
+            throw OldNutParserError(
+                kind: .evaluationError(infix: expression.expression, message: error.description),
                 line: expression.line)
         }
     }
 
-    fileprivate func parse(expression: ExpressionToken) throws -> String {
+    private func parse(expression: ViewCommands.EscapedValue) throws -> String {
         do {
             let res = try expression.evaluate(with: data)
             let str = String(describing: unwrap(any: res ?? "nil"))
             return convertToSpecialCharacters(string: str)
         } catch let error as EvaluationError {
-            throw NutParserError(
-                kind: .evaluationError(infix: expression.infix, message: error.description),
+            throw OldNutParserError(
+                kind: .evaluationError(infix: expression.expression, message: error.description),
                 line: expression.line)
         }
     }
 
-    private func parse(date dateToken: DateToken) throws -> String {
+    private func parse(date dateToken: ViewCommands.Date) throws -> String {
         let dateStr = try parse(rawExpression: dateToken.date)
         guard let dateMiliseconds = Double(dateStr) else {
-            throw NutParserError(
+            throw OldNutParserError(
                 kind: .wrongValue(for: "Date(_:format:)", expected: "Double", got: dateStr),
                 line: dateToken.date.line)
         }
-        let format: RawExpressionToken
+        let format: ViewCommands.RawValue
         if dateToken.format == nil {
-            format = RawExpressionToken(
-                infix: "\"\(NutConfig.dateDefaultFormat)\"",
-                line: dateToken.line)
+            format = ViewCommands.RawValue(expression: "\"\(NutConfig.dateDefaultFormat)\"",
+                                           line: dateToken.line)
         } else {
             format = dateToken.format!
         }
@@ -248,83 +279,133 @@ extension NutInterpreter {
         return dateFormatter.string(from: date)
     }
 
-    fileprivate func parse(forIn: ForInToken) throws -> (result: String, heads: [NutHeadProtocol]) {
-        guard let arr = getValue(name: forIn.array, from: data) else {
-            throw NutParserError(kind: .missingValue(for: forIn.array), line: forIn.line)
+    private func parse(forIn: ViewCommands.For) throws -> ViewDescriptor {
+        guard let arr = getValue(name: forIn.collection, from: data) else {
+            throw OldNutParserError(kind: .missingValue(for: forIn.collection), line: forIn.line)
 
         }
-        let prevValue = data[forIn.variable]
+        let prevValue = data[forIn.value]
         var res = ""
-        var heads = [NutHeadProtocol]()
+        var heads = [HeadCommand]()
+        var layout: String? = nil
         if let keyName = forIn.key {
             let prevKey = data[keyName]
             guard let dic = arr as? [String: Any] else {
-                throw NutParserError(
-                    kind: .wrongValue(for: forIn.array, expected: "[String: Any]", got: arr),
+                throw OldNutParserError(
+                    kind: .wrongValue(for: forIn.collection, expected: "[String: Any]", got: arr),
                     line: forIn.line)
             }
             for (key, value) in dic {
-                data[forIn.variable] = value
+                data[forIn.value] = value
                 data[keyName] = key
-                let result = try run(body: forIn.body)
-                res += result.result
-                heads += result.heads
+                let desc = try run(body: forIn.commands)
+                res += desc.content
+                heads += desc.head
+                if let descLayout = desc.layout {
+                    layout = descLayout
+                }
             }
             data[keyName] = prevKey
         } else {
             guard let array = arr as? [Any] else {
-                throw NutParserError(
-                    kind: .wrongValue(for: forIn.array, expected: "[Any]", got: arr),
+                throw OldNutParserError(
+                    kind: .wrongValue(for: forIn.collection, expected: "[Any]", got: arr),
                     line: forIn.line)
             }
             for item in array {
-                data[forIn.variable] = unwrap(any: item)
-                let result = try run(body: forIn.body)
-                res += result.result
-                heads += result.heads
+                data[forIn.value] = unwrap(any: item)
+                let desc = try run(body: forIn.commands)
+                res += desc.content
+                heads += desc.head
+                if let descLayout = desc.layout {
+                    layout = descLayout
+                }
             }
         }
-        data[forIn.variable] = prevValue
-        return (res, heads)
+        data[forIn.value] = prevValue
+        return ViewDescriptor(content: res, head: heads, layout: layout)
     }
 
-    fileprivate func parse(if ifToken: IfToken)
-        throws -> (result: String, heads: [NutHeadProtocol]) {
+    // swiftlint:disable function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
+    private func parse(if ifToken: ViewCommands.If) throws -> ViewDescriptor {
+        // swiftlint:enable function_body_length
 
-        let any: Any?
-        do {
-            any = try ifToken.condition.evaluate(with: data)
-        } catch let error as EvaluationError {
-            throw NutParserError(
-                kind: .evaluationError(infix: ifToken.condition.infix, message: error.description),
-                line: ifToken.line)
-        }
-        if let variable = ifToken.variable {
-            if let value = any {
-                let prevValue = data[variable]
-                data[variable] = value
-                let res = try run(body: ifToken.thenBlock)
-                data[variable] = prevValue
-                return res
-            } else if let elseBlock = ifToken.elseBlock {
-                return try run(body: elseBlock)
+        for thenBlock in ifToken.thens {
+            guard !thenBlock.conditions.isEmpty else {
+                continue
             }
-        } else {
-            if let condition = any as? Bool {
-                if condition {
-                    return try run(body: ifToken.thenBlock)
-                } else if let elseBlock = ifToken.elseBlock {
-                    return try run(body: elseBlock)
+            var superCondition = true
+            var variables = Array<(key: String, oldValue: Any?)>()
+            for cond in thenBlock.conditions {
+                switch cond {
+                case .simple(let condition):
+                    let any: Any?
+                    do {
+                        any = try condition.expression.evaluate(with: data)
+                    } catch let error as EvaluationError {
+                        throw NutInterpreterError.evaluation(fileName: currentName,
+                                                             expression: condition.expression,
+                                                             causedBy: error,
+                                                             line: condition.line)
+                    }
+                    guard let value = any else {
+                        throw NutInterpreterError.wrongValue(fileName: currentName,
+                                                             expecting: "Bool",
+                                                             got: "nil",
+                                                             line: condition.line)
+                    }
+                    guard let bool = value as? Bool else {
+                        throw NutInterpreterError.wrongValue(fileName: currentName,
+                                                             expecting: "Bool",
+                                                             got: value,
+                                                             line: condition.line)
+                    }
+                    superCondition = superCondition && bool
+                case .cast(let variable, let condition):
+                    let any: Any?
+                    do {
+                        any = try condition.expression.evaluate(with: data)
+                    } catch let error as EvaluationError {
+                        throw NutInterpreterError.evaluation(fileName: currentName,
+                                                             expression: condition.expression,
+                                                             causedBy: error,
+                                                             line: condition.line)
+                    }
+                    if let value = any {
+                        variables.append((variable, data[variable]))
+                        data[variable] = value
+                    } else {
+                        superCondition = false
+                    }
                 }
+                guard superCondition else {
+                    break
+                }
+            }
+            if superCondition {
+                let desc = try run(body: thenBlock.block)
+                variables.forEach({ (key, oldValue) in
+                    if let oldValue = oldValue {
+                        data[key] = oldValue
+                    } else {
+                        data.removeValue(forKey: key)
+                    }
+                })
+                return desc
             } else {
-                throw NutParserError(
-                    kind: .wrongValue(
-                        for: ifToken.id,
-                        expected: "<expression: Bool>",
-                        got: String(describing: any ?? "nil")),
-                    line: ifToken.line)
+                variables.forEach({ (key, oldValue) in
+                    if let oldValue = oldValue {
+                        data[key] = oldValue
+                    } else {
+                        data.removeValue(forKey: key)
+                    }
+                })
             }
         }
-        return ("", [])
+        if !ifToken.`else`.isEmpty {
+            return try run(body: ifToken.`else`)
+        }
+        return ViewDescriptor(content: "", head: [], layout: nil)
     }
 }

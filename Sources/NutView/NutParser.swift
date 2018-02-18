@@ -1,63 +1,25 @@
 //
 //  NutParser.swift
-//  NutView
+//  NutViewPackageDescription
 //
-//  Created by Filip Klembara on 8/6/17.
+//  Created by Filip Klembara on 1/27/18.
 //
-//
 
-import PathKit
-import SquirrelJSON
-import Regex
-// swiftlint:disable cyclomatic_complexity
-// swiftlint:disable function_body_length
-// swiftlint:disable file_length
-
-struct VariableCheck {
-    static let simpleVariable = (regex: "^[a-zA-Z_]\\w*$", value: Regex("^[a-zA-Z_]\\w*$"))
-    static let chainedVariable = (regex: "^[a-zA-Z_]\\w*(?:\\.[a-zA-Z_]\\w*)*$",
-                                   value: Regex("^[a-zA-Z_]\\w*(?:\\.[a-zA-Z_]\\w*)*$"))
-    static func checkSimple(variable: String) -> Bool {
-        let regex = simpleVariable.value
-        return regex.matches(variable)
-    }
-
-    static func checkChained(variable: String) -> Bool {
-        let regex = chainedVariable.value
-        return regex.matches(variable)
-    }
-}
-
-// swiftlint:disable:next type_body_length
 class NutParser: NutParserProtocol {
 
-    private var content = ""
     private let name: String
-    private var serializedTokens: [String: Any] = [:]
     private let viewType: ViewType
+    private var layout: ViewCommands.Layout?
+    private let content: String
 
-    private var _jsonSerialized: String = ""
-
-    var jsonSerialized: String {
-        return _jsonSerialized
-    }
-
-    private struct Constants {
-        private init() {}
-        static let separator = "\\"
-    }
-
-    private enum ViewType {
-        case view
-        case layout
-        case subview
-    }
+    private var commands: ViewCommands?
 
     required init(content: String, name: String) {
-        self.content = content
         self.name = name
-        let typ = name.split(separator: "/", maxSplits: 1).first!
-        switch typ {
+        self.content = content
+        commands = nil
+        let type = name.split(separator: "/", maxSplits: 1).first!
+        switch type {
         case "Layouts":
             viewType = .layout
         case "Views":
@@ -67,812 +29,366 @@ class NutParser: NutParserProtocol {
         }
     }
 
-    private func makeSeparations() -> [String] {
-        var separatedPom = content.components(separatedBy: Constants.separator)
-        if separatedPom.count > 1 {
+    func getCommands() throws -> ViewCommands {
 
-            var index = 1
-            let stop = separatedPom.count
-            separatedPom.append("")
-            while index < stop {
-                if separatedPom[index] == "" {
-                    separatedPom[index - 1] += Constants.separator + separatedPom[index + 1]
-                    separatedPom[index + 1] = ""
-                    index += 1
-                }
-                index += 1
-            }
+        if let commands = self.commands {
+            return commands
         }
-        separatedPom = separatedPom.filter({ $0 != "" })
-        separatedPom.insert("", at: 0)
-        return separatedPom
-    }
-
-    private func getLine(string: String) -> Int {
-        var lineIndex: Int = 1
-        string.forEach({ (char) in
-            if char == "\n" {
-                lineIndex += 1
-            }
-        })
-
-        return lineIndex
-    }
-
-    private func getLine(array: [String]) -> Int {
-        let string = array.joined(separator: Constants.separator)
-        return getLine(string: string)
-    }
-    private func getLine(array: ArraySlice<String>) -> Int {
-        let string = array.joined(separator: Constants.separator)
-        return getLine(string: string)
-    }
-
-    func tokenize() throws -> ViewToken {
-        var separated = makeSeparations()
-        var tokens = [NutTokenProtocol]()
-        var title: TitleToken? = nil
-        var layout: LayoutToken? = nil
-        var index = separated.count - 1
+        let body: [Command]
         do {
-            while index > 0 {
-                let line = getLine(array: separated.prefix(index))
-                let current = separated[index]
-                var cont = false
-                switch viewType {
+            body = try parseCommands()
+        } catch let lexError as NutLexical.LexicalError {
+            throw NutParserError.lexical(fileName: name, error: lexError)
+        } catch let parseError as NutParserError {
+            throw parseError
+        } catch let error {
+            throw NutParserError.unknown(fileName: name, error: error)
+        }
+
+        let cmds = ViewCommands(name: name, body: body)
+        commands = cmds
+        return cmds
+    }
+}
+
+private extension NutParser {
+    // swiftlint:disable function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
+    func parseCommands() throws -> [Command] {
+        // swiftlint:enable function_body_length
+
+        // swiftlint:disable:next nesting
+        enum ContextType {
+            case main
+            case `if`(conditions: [ViewCommands.If.ThenBlock.ConditionType], line: Int)
+            case elseIf(ifCmd: ViewCommands.If,
+                        conditions: [ViewCommands.If.ThenBlock.ConditionType],
+                        line: Int)
+            case `else`(ifCmd: ViewCommands.If, line: Int)
+            case `for`(key: String?, value: String, collection: String, line: Int)
+        }
+
+        let lexical: LexicalAnalysis = NutLexical(content: content)
+        var context = Stack<(ContextType, [Command])>()
+        var body = [Command]()
+        var currentContext: ContextType = .main
+        while let tokenType = try lexical.nextTokenType() {
+            switch tokenType {
+            case .html:
+                let html = lexical.nextHTML()
+                let command = ViewCommands.HTML(value: html.value, line: html.line)
+                body.append(command)
+            case .command:
+                guard let cmd = try lexical.nextCommand() else {
+                    throw NutParserError.incompleteCommand(fileName: name,
+                                                           expecting: "tokenId.rawValue")
+                }
+                let line = cmd.line
+                switch cmd.type {
+                case .title:
+                    let title = try parseTitle(lexical: lexical, line: line)
+                    body.append(title)
+                case .escapedValue:
+                    let value = try parseEscapedValue(lexical: lexical)
+                    body.append(value)
+                case .rawValue:
+                    let value = try parseRawValue(lexical: lexical, line: line)
+                    body.append(value)
+                case .subview:
+                    let subview = try parseSubview(lexical: lexical, line: line)
+                    body.append(subview)
                 case .view:
-                    if current.hasPrefix("Layout(\"") {
-                        let tks = try parseLayout(text: current, line: line)
-                        guard let layoutToken = (tks.last! as? LayoutToken) else {
-                            throw NutParserError(
-                                kind: .unknownInternalError(commandName: "\\Layout"),
-                                line: getLine(
-                                    string: separated.prefix(index).joined(separator: "\\")
-                                )
-                            )
+                    let view = try parseInserView(lexical: lexical, line: line)
+                    body.append(view)
+                case .date:
+                    let date = try parseDate(lexical: lexical, line: line)
+                    body.append(date)
+                case .`for`:
+                    let forData = try parseFor(lexical: lexical)
+                    context.push((currentContext, body))
+                    currentContext = .`for`(key: forData.key,
+                                            value: forData.value,
+                                            collection: forData.collection,
+                                            line: line)
+                    body.removeAll()
+                case .`if`:
+                    let conditions = try parseIf(lexical: lexical)
+                    context.push((currentContext, body))
+                    currentContext = .`if`(conditions: conditions, line: line)
+                    body.removeAll()
+                case .elseIf:
+                    switch currentContext {
+                    case .`if`(let conditions, let ifLine):
+                        let ifCmd = ViewCommands.If(conditions: conditions,
+                                                    then: body,
+                                                    line: ifLine)
+                        let conditions = try parseIf(lexical: lexical)
+                        currentContext = .`elseIf`(ifCmd: ifCmd, conditions: conditions, line: line)
+                        body.removeAll()
+                    case .elseIf(var ifCmd, let conditions, let ifLine):
+                        ifCmd.add(conditions: conditions, then: body, line: ifLine)
+                        let conditions = try parseIf(lexical: lexical)
+                        currentContext = .`elseIf`(ifCmd: ifCmd, conditions: conditions, line: line)
+                        body.removeAll()
+                    case .main, .`else`, .for:
+                        let context = "Missing if <expression> { for closing \(cmd.type)"
+                        throw NutParserError.syntax(fileName: name, context: context, line: line)
+                    }
+                case .blockEnd:
+                    let blockCommand: Command
+                    switch currentContext {
+                    case .main:
+                        throw NutParserError.syntax(fileName: name,
+                                                    context: "Unexpected block end '\(cmd.type)'",
+                                                    line: line)
+                    case .`if`(let conditions, let line):
+                        blockCommand = ViewCommands.If(conditions: conditions,
+                                                       then: body,
+                                                       line: line)
+                    case .elseIf(var ifCmd, let conditions, let line):
+                        ifCmd.add(conditions: conditions, then: body, line: line)
+                        blockCommand = ifCmd
+                    case .`else`(var ifCmd, _):
+                        ifCmd.setElse(body: body)
+                        blockCommand = ifCmd
+                    case .`for`(let key, let value, let collection, let line):
+                        blockCommand = ViewCommands.For(key: key,
+                                                        value: value,
+                                                        collection: collection,
+                                                        commands: body,
+                                                        line: line)
+                    }
+                    (currentContext, body) = context.pop()!
+                    if let ifCmd = blockCommand as? ViewCommands.If {
+                        guard !(ifCmd.`else`.isEmpty && ifCmd.thens.isEmpty) else {
+                            break
                         }
-                        layout = layoutToken
-                        if tks.count == 2 {
-                            tokens.append(tks.first!)
+                    } else if let forCmd = blockCommand as? ViewCommands.For {
+                        guard !forCmd.commands.isEmpty else {
+                            break
                         }
-                    } else if current.hasPrefix("Title") {
-                        let tks = try parseTitle(text: current, line: line)
-                        guard let titleToken = (tks.last! as? TitleToken) else {
-                            throw NutParserError(
-                                kind: .unknownInternalError(commandName: "\\Title"),
-                                line: getLine(
-                                    string: separated.prefix(index).joined(separator: "\\")
-                                )
-                            )
-                        }
-                        title = titleToken
-                        if tks.count == 2 {
-                            tokens.append(tks.first!)
-                        }
-                    } else {
-                        cont = true
+                    }
+                    body.append(blockCommand)
+                case .`else`:
+                    switch currentContext {
+                    case .main, .`else`, .for:
+                        let context = "Missing if <expression> { for closing \(cmd.type)"
+                        throw NutParserError.syntax(fileName: name, context: context, line: line)
+                    case .`if`(let conditions, let ifLine):
+                        let ifCmd = ViewCommands.If(conditions: conditions,
+                                                    then: body,
+                                                    line: ifLine)
+                        currentContext = .`else`(ifCmd: ifCmd, line: line)
+                        body.removeAll()
+                    case .elseIf(var ifCmd, let conditions, let ifLine):
+                        ifCmd.add(conditions: conditions, then: body, line: ifLine)
+                        currentContext = .`else`(ifCmd: ifCmd, line: line)
+                        body.removeAll()
                     }
                 case .layout:
-                    if current.hasPrefix("View()") {
-                        tokens.append(contentsOf: parseView(text: current, line: line))
-                    } else {
-                        cont = true
-                    }
-                case .subview:
-                    cont = true
+                    let layout = try parseLayout(lexical: lexical, line: line)
+                    body.append(layout)
                 }
-                if cont {
-                    if current.hasPrefix("(") {
-                        tokens.append(contentsOf: try parseExpression(text: current, line: line))
-                    } else if current.hasPrefix("RawValue(") {
-                        tokens.append(contentsOf: try parseRawExpression(text: current, line: line))
-                    } else if current.hasPrefix("Date(") {
-                        tokens.append(contentsOf: try parseDate(text: current, line: line))
-                    } else if current.hasPrefix("if ") {
-                        tokens.append(contentsOf: try parseIf(text: current, line: line))
-                    } else if current.hasPrefix("Subview(\"") {
-                        let tks = try parseSubview(text: current, line: line)
-                        tokens.append(contentsOf: tks)
-                    } else if current.hasPrefix("for ") {
-                        tokens.append(contentsOf: try parseFor(text: current, line: line))
-                    } else if current.hasPrefix("} else if ") {
-                        tokens.append(contentsOf: try parseElseIf(text: current, line: line))
-                    } else if current.hasPrefix("} else { ") || current.hasPrefix("} else {\n") {
-                        tokens.append(contentsOf: parseElse(text: current, line: line))
-                    } else if current.hasPrefix("}") {
-                        var text = current
-                        text.remove(at: text.startIndex)
-                        tokens.append(TextToken(value: text))
-                        tokens.append(EndBlockToken(line: line))
-                    } else {
-                        if current.first == "\\" {
-                            separated[index - 1] += current
-                        } else {
-                            separated[index - 1] += "\\" + current
-                        }
-                        separated[index] = ""
-                    }
-                }
-                index -= 1
             }
-            if separated.first! != "" {
-                tokens.append(TextToken(value: String(separated.first!.dropFirst())))
-            }
-
-            let reductedTokens = try doReduction(tokens: tokens)
-
-            let tks = reductedTokens.reversed().map({ $0.serialized })
-            var res: [String: Any] = ["body": tks, "fileName": name]
-
-            var head = [[String: Any]]()
-            var headTokens = [NutHeadProtocol]()
-
-            if let titleToken = title {
-                head.append(titleToken.serialized)
-                headTokens.append(titleToken)
-            }
-            if head.count > 0 {
-                res["head"] = head
-            }
-            if let layout = layout {
-                res["layout"] = layout.serialized
-            }
-            serializedTokens = res
-            // swiftlint:disable:next force_try
-            _jsonSerialized = try! JSONCoding.encodeJSON(object: res)
-            let viewBody = ViewToken(
-                name: name,
-                head: headTokens,
-                body: reductedTokens.reversed(),
-                layout: layout)
-
-            return viewBody
-        } catch var error as NutParserError {
-            guard error.name == nil else {
-                throw error
-            }
-            error.name = name
-            throw error
         }
+        switch currentContext {
+        case .main:
+            break
+        case .`if`(_, let line):
+            let context = "<if> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
+        case .elseIf(_, _, let line):
+            let context = "<else if> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
+        case .`else`(_, let line):
+            let context = "<else> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
+        case .for(_, _, _, let line):
+            let context = "<for> command is not closed"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
+        }
+        return body
     }
 
-    private func doReduction(tokens originalTokens: [NutTokenProtocol])
-        throws -> [NutTokenProtocol] {
+    func parseFor(lexical: LexicalAnalysis)
+        throws -> (key: String?, value: String, collection: String) {
 
-        var tokens = originalTokens
-        var index = 0
-        var opened = [NutCommandTokenProtocol]()
-        while index < tokens.count {
-            let current = tokens[index]
-            switch current {
-            case var forInToken as ForInToken:
-                var backIndex = index - 1
-                var body = [NutTokenProtocol]()
-                var foundEnd = false
-                while !foundEnd && backIndex > 0 {
-                    if tokens[backIndex] is EndBlockToken {
-                        foundEnd = true
-                    } else {
-                        body.append(tokens[backIndex])
-                    }
-                    tokens.remove(at: backIndex)
-                    index -= 1
-                    backIndex -= 1
-                }
-                if foundEnd {
-                    forInToken.setBody(body: body)
-                    tokens[index] = forInToken
-                    opened.removeLast()
-                } else {
-                    throw NutParserError(
-                        kind: .unexpectedEnd(reading: forInToken.id),
-                        line: forInToken.line,
-                        description: "\\} not found")
-                }
-
-            case var ifToken as IfTokenProtocol:
-                var backIndex = index - 1
-                var body = [NutTokenProtocol]()
-                var elseToken: NutTokenProtocol?
-                var foundEnd = false
-                while !foundEnd && backIndex > 0 {
-                    if let elT = tokens[backIndex] as? ElseToken {
-                        foundEnd = true
-                        elseToken = elT
-                    } else if let elifT = tokens[backIndex] as? ElseIfToken {
-                        foundEnd = true
-                        elseToken = elifT
-                    } else if tokens[backIndex] is EndBlockToken {
-                        foundEnd = true
-                        opened.removeLast()
-                    } else {
-                        body.append(tokens[backIndex])
-                    }
-                    tokens.remove(at: backIndex)
-                    index -= 1
-                    backIndex -= 1
-                }
-                if foundEnd {
-                    ifToken.setThen(body: body)
-                    if let elseToken = elseToken {
-                        if let el = elseToken as? ElseToken {
-                            ifToken.setElse(body: el.getBody())
-                        } else if let el = elseToken as? ElseIfToken {
-                            var ifT: IfToken
-                            if let variable = el.variable {
-                                ifT = IfToken(
-                                    variable: variable,
-                                    condition: el.getCondition(),
-                                    line: el.line)
-                            } else {
-                                ifT = IfToken(condition: el.getCondition(), line: el.line)
-                            }
-                            ifT.setThen(body: el.getThen())
-                            if let elseBlock = el.getElse() {
-                                ifT.setElse(body: elseBlock)
-                            }
-                            ifToken.setElse(body: [ifT])
-                        }
-                    }
-                    tokens[index] = ifToken
-                } else {
-                    throw NutParserError(
-                        kind: .unexpectedEnd(reading: ifToken.id),
-                        line: ifToken.line,
-                        description: "\\} not found")
-                }
-
-            case var elseToken as ElseToken:
-                var backIndex = index - 1
-                var body = [NutTokenProtocol]()
-                var foundEnd = false
-                while !foundEnd && backIndex > 0 {
-                    if tokens[backIndex] is EndBlockToken {
-                        foundEnd = true
-                        opened.removeLast()
-                    } else {
-                        body.append(tokens[backIndex])
-                    }
-                    tokens.remove(at: backIndex)
-                    index -= 1
-                    backIndex -= 1
-                }
-                if foundEnd {
-                    elseToken.setBody(body: body)
-                    tokens[index] = elseToken
-                } else {
-                    throw NutParserError(
-                        kind: .unexpectedEnd(reading: elseToken.id),
-                        line: elseToken.line,
-                        description: "\\} not found")
-                }
-            case let endBlock as EndBlockToken:
-                opened.append(endBlock)
+            guard let tok = lexical.nextToken() else {
+                throw NutParserError.incompleteCommand(fileName: name, expecting: "variable name")
+            }
+            let key: String?
+            let value: String
+            switch tok.id {
+            case .text:
+                key = nil
+                try  check(variable: tok.value, line: tok.line, allowNesting: false)
+                value = tok.value
+            case .leftParentles:
+                let keyToken = try checkNextToken(lexical: lexical, tokenId: .text)
+                try check(variable: keyToken.value, line: keyToken.line, allowNesting: false)
+                key = keyToken.value
+                let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
+                let valueToken = try checkNextToken(lexical: lexical, tokenId: .text)
+                try check(variable: valueToken.value, line: valueToken.line, allowNesting: false)
+                value = valueToken.value
+                let _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
             default:
-                break
+                let context = "Expecting 'variable name' or 'tupple' but '\(tok)' found"
+                throw NutParserError.syntax(fileName: name, context: context, line: tok.line)
             }
-            index += 1
-        }
-        guard opened.isEmpty else {
-            let endBlock = opened.last!
-            throw NutParserError(kind: .unexpectedBlockEnd, line: endBlock.line)
-        }
-        return tokens
-    }
-}
-
-extension NutParser {
-    private func parseDate(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let stringIndex = text.index(text.startIndex, offsetBy: 5)
-        let text = String(text[stringIndex...])
-        let chars = text.map({ String(describing: $0) })
-        var prevChar = ""
-        var charIndex = 0
-        var inString = false
-        var formatIndex = 0
-        var date: RawExpressionToken!
-        for char in chars {
-            if char == "," && !inString {
-                let finalStringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-                var dateString = String(text[..<finalStringIndex])
-                dateString.removeLast()
-                date = RawExpressionToken(infix: dateString, line: line)
-                charIndex += 1
-                formatIndex = charIndex
-                continue
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
-            } else if char == ")" && !inString {
-                break
-            }
-            prevChar = char
-            charIndex += 1
-        }
-        guard charIndex < text.count else {
-            throw NutParserError(
-                kind: .syntaxError(
-                    expected: ["Date(<expression: Double>, format: <expression: String>)",
-                               "Date(<expression: Double>)"],
-                    got: text),
-                line: line,
-                description: "missing '\")'")
-        }
-        guard charIndex > 0 else {
-            throw NutParserError(
-                kind: .syntaxError(
-                    expected: ["Date(<expression: Double>, format: <expression: String>)",
-                               "Date(<expression: Double>)"],
-                    got: text),
-                line: line)
-        }
-        let format: RawExpressionToken?
-        if formatIndex > 0 {
-            let formatStringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-            let formatIndex = text.index(text.startIndex, offsetBy: formatIndex)
-            let formatArg = String(text[formatIndex..<formatStringIndex])
-            guard formatArg.hasPrefix(" format: ") else {
-                throw NutParserError(
-                    kind: .syntaxError(expected: [" format: <expression: String>"], got: formatArg),
-                    line: line)
-            }
-            let formatOffset = formatArg.index(formatArg.startIndex, offsetBy: 9)
-            var formatExpr = String(formatArg[formatOffset...])
-            formatExpr.removeLast()
-            format = RawExpressionToken(infix: formatExpr, line: line)
-        } else {
-            format = nil
-            let dateStringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-            var dateString = String(text[..<dateStringIndex])
-            dateString.removeLast()
-            date = RawExpressionToken(infix: dateString, line: line)
-        }
-        let textIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-        let textToken = TextToken(value: String(text[textIndex...]))
-        return [textToken, DateToken(date: date, format: format, line: line)]
+            let _ = try checkNextToken(lexical: lexical, tokenId: .text, expValue: "in")
+            let collectionToken = try checkNextToken(lexical: lexical, tokenId: .text)
+            try check(variable: collectionToken.value,
+                      line: collectionToken.line,
+                      allowNesting: true)
+            let _ = try checkNextToken(lexical: lexical, tokenId: .leftCurly)
+            return (key, value, collectionToken.value)
     }
 
-    // swiftlint:disable cyclomatic_complexity
-    // swiftlint:disable function_body_length
-    private func parseFor(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let expected = [
-            "for <variable: Any> in <array: [Any]> {",
-            "for (<key: String>, <value: Any>) in <dictionary: [String: Value> {"
-        ]
-
-        let chars = text.map({ String(describing: $0) })
-        var prevChar = ""
-        var inString = false
-        var charIndex = 0
-        for char in chars {
-            if char == "{" && !inString && prevChar == " " {
-                let start = text.index(text.startIndex, offsetBy: 3)
-                let end = text.index(text.startIndex, offsetBy: charIndex)
-
-                let stm = String(text[start..<end])
-
-                let stringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-                let text = String(text[stringIndex...])
-
-                guard stm != "" else {
-                    throw NutParserError(
-                        kind: .syntaxError(expected: expected, got: stm),
-                        line: line)
-                }
-                let separated = stm.components(separatedBy: " ")
-                var key: String? = nil
-                var variable = ""
-                var array = ""
-                if separated.count == 5 && separated[2] == "in" {
-                    variable = separated[1]
-                    array = separated[3]
-
-                    if variable.contains(",") {
-                        throw NutParserError(
-                            kind: .syntaxError(expected: expected, got: stm),
-                            line: line)
-                    }
-                } else if separated.count == 6 && separated[3] == "in"
-                    && separated[1].hasPrefix("(") && separated[1].hasSuffix(",")
-                    && separated[2].hasSuffix(")")
-                    && separated[1].count > 2 && separated[2].count > 1 {
-
-                    key = separated[1]
-                    key!.removeFirst()
-                    key!.removeLast()
-                    variable = separated[2]
-                    variable = String(variable.dropLast())
-                    array = separated[4]
-                } else {
-                    throw NutParserError(
-                        kind: .syntaxError(expected: expected, got: stm),
-                        line: line)
-                }
-                if let keyValue = key {
-                    guard checkSimple(variable: keyValue) else {
-                        throw NutParserError(
-                            kind: .wrongSimpleVariable(
-                                name: keyValue,
-                                in: "for\(stm){",
-                                regex: VariableCheck.simpleVariable.regex),
-                            line: line)
-                    }
-                }
-                guard checkSimple(variable: variable) else {
-                    throw NutParserError(
-                        kind: .wrongSimpleVariable(
-                            name: variable,
-                            in: "for\(stm){",
-                            regex: VariableCheck.simpleVariable.regex),
-                        line: line)
-                }
-                guard checkChained(variable: array) else {
-                    throw NutParserError(
-                        kind: .wrongChainedVariable(
-                            name: array,
-                            in: "for\(stm){",
-                            regex: VariableCheck.chainedVariable.regex),
-                        line: line)
-                }
-                let token = ForInToken(key: key, variable: variable, array: array, line: line)
-
-                if text == "" {
-                    return [token]
-                }
-                return [TextToken(value: text), token]
-
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
+    func parseIf(lexical: LexicalAnalysis) throws -> [ViewCommands.If.ThenBlock.ConditionType] {
+        var stop = NutLexical.Buffer.StopChar.leftCurly
+        var conditions = [ViewCommands.If.ThenBlock.ConditionType]()
+        repeat {
+            guard let letToken = lexical.getNextToken() else {
+                throw NutParserError.incompleteCommand(fileName: name,
+                                                       expecting: "let or expression")
             }
-            charIndex += 1
-            prevChar = char
-        }
-        throw NutParserError(
-            kind: .syntaxError(expected: expected, got: text),
-            line: line,
-            description: "'{' not found")
-    }
-
-    private func parseView(text: String, line: Int) -> [NutTokenProtocol] {
-        let stringIndex = text.index(text.startIndex, offsetBy: 6)
-        let text = String(text[stringIndex...])
-        let viewToken = InsertViewToken(line: line)
-        if text == "" {
-            return [viewToken]
-        } else {
-            return [TextToken(value: text), viewToken]
-        }
-    }
-
-    private func parseTitle(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let stringIndex = text.index(text.startIndex, offsetBy: 5)
-        let text = String(text[stringIndex...])
-        let res = try parseExpression(text: text, line: line)
-        if let expr = res.last! as? ExpressionToken {
-            let titleToken = TitleToken(expression: expr, line: line)
-            if res.count == 2 {
-                return [res[0], titleToken]
+            let variable: String?
+            if letToken.id == .text && letToken.value == "let" {
+                let _ = lexical.nextToken()
+                let vari = try checkNextToken(lexical: lexical, tokenId: .text)
+                try check(variable: vari.value, line: vari.line, allowNesting: false)
+                let _ = try checkNextToken(lexical: lexical, tokenId: .equal)
+                variable = vari.value
             } else {
-                return [titleToken]
+                variable = nil
             }
-        }
-        throw NutParserError(kind: .expressionError, line: line)
+            let (cond, newStop) = try lexical.readExpression(until: .leftCurly, .comma)
+//            if newStop == .comma {
+//                let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
+//            }
+            let condition = ViewCommands.RawValue(expression: cond.value, line: cond.line)
+            if let variable = variable {
+                conditions.append(.cast(variable: variable, condition: condition))
+            } else {
+                conditions.append(.simple(condition: condition))
+            }
+            stop = newStop
+        } while stop == .comma
+        return conditions
     }
 
-    private func parseLayout(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let stringIndex = text.index(text.startIndex, offsetBy: 8)
-        let text = String(text[stringIndex...])
-        var inString = true
-        var prevChar = ""
-        var charIndex = 0
-        for char in text {
-            if char == ")" && prevChar == "\"" && !inString {
-                break
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
-            }
-            prevChar = String(char)
-            charIndex += 1
+    func parseInserView(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.InsertView {
+        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        let _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
+
+        return ViewCommands.InsertView(line: line)
+    }
+    func parseSubview(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Subview {
+        let value = try parseRawValue(lexical: lexical, line: line)
+        return ViewCommands.Subview(name: value, line: line)
+    }
+    func parseLayout(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Layout {
+        let value = try parseRawValue(lexical: lexical, line: line)
+        return ViewCommands.Layout(name: value, line: line)
+    }
+    func parseRawValue(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.RawValue {
+        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        let (expr, _) = try lexical.readExpression(until: .rightParentles)
+        return ViewCommands.RawValue(expression: expr.value, line: line)
+    }
+    func parseEscapedValue(lexical: LexicalAnalysis) throws -> ViewCommands.EscapedValue {
+        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        let (expr, _) = try lexical.readExpression(until: .rightParentles)
+        return ViewCommands.EscapedValue(expression: expr.value, line: expr.line)
+    }
+    func parseTitle(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Title {
+        let value = try parseEscapedValue(lexical: lexical)
+        return ViewCommands.Title(expression: value, line: line)
+    }
+    func parseDate(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Date {
+        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        let (expr, stop) = try lexical.readExpression(until: .comma, .rightParentles)
+        let formatExp: ViewCommands.RawValue?
+        if stop == .comma {
+            let _ = try checkNextToken(lexical: lexical,
+                                       tokenId: .namedArgument,
+                                       expValue: "format")
+            let (format, _) = try lexical.readExpression(until: .rightParentles)
+            formatExp = ViewCommands.RawValue(expression: format.value, line: format.line)
+        } else {
+            formatExp = nil
         }
-        guard charIndex < text.count else {
-            throw NutParserError(
-                kind: .syntaxError(expected: ["Layout(\"<name>\")"], got: text),
-                line: line,
-                description: "missing '\")'")
-        }
-        let finalStringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-        var name = String(text[..<finalStringIndex])
-        name.remove(at: name.index(before: name.endIndex))
-        name.remove(at: name.index(before: name.endIndex))
-        let finalText = String(text[finalStringIndex...])
-        let layoutToken = LayoutToken(name: "Layouts." + name, line: line)
-        if finalText == "" {
-            return [layoutToken]
-        }
-        return [TextToken(value: finalText), layoutToken]
+        let exprValue = ViewCommands.RawValue(expression: expr.value, line: expr.line)
+        return ViewCommands.Date(date: exprValue, format: formatExp, line: line)
     }
 
-    private func parseSubview(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let stringIndex = text.index(text.startIndex, offsetBy: 9)
-        let text = String(text[stringIndex...])
-        var inString = true
-        var prevChar = ""
-        var charIndex = 0
-        for char in text {
-            if char == ")" && prevChar == "\"" && !inString {
-                break
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
+    func checkNextToken(lexical: LexicalAnalysis,
+                        tokenId: Token.TokenType,
+                        expValue: String? = nil) throws -> Token {
+
+        guard let token = lexical.nextToken() else {
+            throw NutParserError.incompleteCommand(fileName: name, expecting: tokenId.rawValue)
+        }
+        guard token.id == tokenId else {
+            let context = "Expecting '\(tokenId.rawValue)'"
+                + " but '\(token.id.rawValue)' with value '\(token.value)' found"
+            throw NutParserError.syntax(fileName: name, context: context, line: token.line)
+        }
+        if let expValue = expValue {
+            guard token.value == expValue else {
+                let context = "Expecting value '\(expValue)' for token '\(tokenId)'"
+                    + " but '\(token)' found"
+                throw NutParserError.syntax(fileName: name, context: context, line: token.line)
             }
-            prevChar = String(char)
-            charIndex += 1
         }
-        guard charIndex < text.count else {
-            throw NutParserError(
-                kind: .syntaxError(
-                    expected: ["Subview(\"<name>\")"],
-                    got: text),
-                line: line,
-                description: "missing '\")'")
-        }
-        let finalStringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-        var name = String(text[..<finalStringIndex])
-        name.remove(at: name.index(before: name.endIndex))
-        name.remove(at: name.index(before: name.endIndex))
-        let finalText = String(text[finalStringIndex...])
-        let subviewToken = SubviewToken(name: "Subviews." + name, line: line)
-        if finalText == "" {
-            return [subviewToken]
-        }
-        return [TextToken(value: finalText), subviewToken]
+        return token
     }
-
-    fileprivate func parseElseIf(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let expected = [
-            "} else if <expression: Bool> {",
-            "} else if let <variableName: Any> = <expression: Any?> {"
-        ]
-
-        let stringIndex = text.index(text.startIndex, offsetBy: 10)
-        let text = String(text[stringIndex...])
-        let chars = text.map({ String(describing: $0) })
-        var prevChar = ""
-        var inString = false
-        var charIndex = 0
-        guard text.first != "{" else {
-            throw NutParserError(
-                kind: .syntaxError(expected: expected, got: "} else if {"),
-                line: line,
-                description: "empty <expression>")
+    func check(variable: String, line: Int, allowNesting: Bool) throws {
+        // swiftlint:disable:next nesting
+        enum State {
+            case start
+            case inVariable
         }
-        guard !text.hasPrefix("let {") else {
-            throw NutParserError(
-                kind: .syntaxError(expected: expected, got: "} else if let {"),
-                line: line,
-                description: "empty <expression>")
-        }
-        for char in chars {
-            if char == "{" && !inString && prevChar == " " {
-                let end = text.index(text.startIndex, offsetBy: charIndex)
-
-                let condition = String(text[..<end].dropLast())
-
-                let stringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-                let text = String(text[stringIndex...])
-                guard condition != "" else {
-                    throw NutParserError(
-                        kind: .syntaxError(
-                            expected: expected,
-                            got: "} else if " + condition + " {"),
-                        line: line,
-                        description: "empty <expression>")
-
+        var state: State = .start
+        var iterator = variable.makeIterator()
+        while let char = iterator.next() {
+            switch state {
+            case .start:
+                switch char {
+                case "a"..."z", "A"..."Z", "_":
+                    state = .inVariable
+                default:
+                    let context = "Identifier name can not starts with '\(char)'"
+                    throw NutParserError.syntax(fileName: name, context: context, line: line)
                 }
-                let elsifToken = try ElseIfToken(condition: condition, line: line)
-                if text == "" {
-                    return [elsifToken]
-                }
-                return [TextToken(value: text), elsifToken]
-
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
-            }
-            charIndex += 1
-            prevChar = char
-        }
-        throw NutParserError(
-            kind: .syntaxError(
-                expected: expected,
-                got: "} else if \(text)"),
-            line: line,
-            description: "'{' not found")
-    }
-
-    fileprivate func parseElse(text: String, line: Int) -> [NutTokenProtocol] {
-        let stringIndex = text.index(text.startIndex, offsetBy: 9)
-        let text = String(text[stringIndex...])
-        let elseToken = ElseToken(line: line)
-        if text == "" {
-            return [elseToken]
-        }
-        return [TextToken(value: text), elseToken]
-    }
-
-    private func parseRawExpression(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let text = String(text[text.index(text.startIndex, offsetBy: 8)...])
-        let chars = text.map({ String($0) })
-        var prevChar = ""
-        var inString = false
-        var charIndex = 0
-        var opened = 0
-        for char in chars {
-            if char == ")" && !inString {
-                opened -= 1
-                if opened == 0 {
+            case .inVariable:
+                switch char {
+                case "a"..."z", "A"..."Z", "0"..."9", "_":
                     break
-                }
-            } else if char == "(" && !inString {
-                opened += 1
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
-            }
-            prevChar = char
-            charIndex += 1
-        }
-        guard opened == 0 else {
-            throw NutParserError(
-                kind: .syntaxError(
-                    expected: ["RawValue(<expression: Any>)"],
-                    got: "RawValue" + text),
-                line: line,
-                description: "missing ')'")
-        }
-        let stringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-        var expression = String(text[..<stringIndex])
-        guard expression != "()" else {
-            throw NutParserError(
-                kind: .syntaxError(
-                    expected: ["RawValue(<expression: Any>)"],
-                    got: "RawValue\(expression)"),
-                line: line,
-                description: "Empty expression")
-        }
-        expression.removeLast()
-        expression.removeFirst()
-        let text1 = String(text[stringIndex...])
-        let expressionToken = RawExpressionToken(infix: expression, line: line)
-        if text1 == "" {
-            return [expressionToken]
-        }
-        return [TextToken(value: text1), expressionToken]
-    }
-
-    fileprivate func parseExpression(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let expected = ["(<expression: Any>)"]
-        let chars = text.map({ String(describing: $0) })
-        var prevChar = ""
-        var inString = false
-        var charIndex = 0
-        var opened = 0
-        for char in chars {
-            if char == ")" && !inString {
-                opened -= 1
-                if opened == 0 {
-                    break
-                }
-            } else if char == "(" && !inString {
-                opened += 1
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
-            }
-            prevChar = char
-            charIndex += 1
-        }
-        guard opened == 0 else {
-            throw NutParserError(
-                kind: .syntaxError(expected: expected, got: text),
-                line: line,
-                description: "missing ')'")
-        }
-        let stringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-        var expression = String(text[..<stringIndex])
-        guard expression != "()" else {
-            throw NutParserError(
-                kind: .syntaxError(expected: expected, got: expression),
-                line: line,
-                description: "Empty expression")
-        }
-        expression.removeLast()
-        expression.removeFirst()
-        let text = String(text[stringIndex...])
-        let expressionToken = ExpressionToken(infix: expression, line: line)
-        if text == "" {
-            return [expressionToken]
-        }
-        return [TextToken(value: text), expressionToken]
-    }
-
-    fileprivate func parseIf(text: String, line: Int) throws -> [NutTokenProtocol] {
-        let expected = [
-            "if <expression: Bool> {",
-            "if let <variableName: Any> = <expression: Any?> {"
-        ]
-
-        let text = String(text[text.index(text.startIndex, offsetBy: 3)...])
-        let chars = text.map({ String(describing: $0) })
-        var prevChar = ""
-        var inString = false
-        var charIndex = 0
-        guard text.first != "{" else {
-            throw NutParserError(
-                kind: .syntaxError(expected: expected, got: "if {"),
-                line: line,
-                description: "empty <expression>")
-        }
-        guard !text.hasPrefix("let {") else {
-            throw NutParserError(
-                kind: .syntaxError(expected: expected, got: "if let {"),
-                line: line,
-                description: "empty <expression>")
-        }
-        for char in chars {
-            if char == "{" && !inString && prevChar == " " {
-                let end = text.index(text.startIndex, offsetBy: charIndex)
-                let condition = String(text[..<end].dropLast())
-
-                let stringIndex = text.index(text.startIndex, offsetBy: charIndex + 1)
-                let text = String(text[stringIndex...])
-                guard condition != "" else {
-                    throw NutParserError(
-                        kind: .syntaxError(expected: expected, got: "if " + condition + " {"),
-                        line: line,
-                        description: "empty <expression>")
-                }
-                let token = try IfToken(condition: condition, line: line)
-                if let variable = token.variable {
-                    guard checkSimple(variable: variable) else {
-                        throw NutParserError(
-                            kind: .wrongSimpleVariable(
-                                name: variable,
-                                in: "if \(condition) {",
-                                regex: VariableCheck.simpleVariable.regex),
-                            line: line)
+                case ".":
+                    guard allowNesting else {
+                        let context = "Expecting identifier without nesting"
+                        throw NutParserError.syntax(fileName: name, context: context, line: line)
                     }
-                    guard checkChained(variable: token.condition.infix) else {
-                        throw NutParserError(
-                            kind: .wrongChainedVariable(
-                                name: token.condition.infix,
-                                in: "if \(condition) {",
-                                regex: VariableCheck.chainedVariable.regex),
-                            line: line)
-                    }
+                    state = .start
+                default:
+                    let context = "Unsupported character '\(char)' for identifier"
+                    throw NutParserError.syntax(fileName: name, context: context, line: line)
                 }
-                if text == "" {
-                    return [token]
-                }
-                return [TextToken(value: text), token]
-
-            } else if char == "\"" && prevChar != "\\" {
-                inString = !inString
             }
-            charIndex += 1
-            prevChar = char
         }
-        throw NutParserError(
-            kind: .syntaxError(expected: expected, got: "if " + text),
-            line: line,
-            description: "'{' not found")
+        guard state == .inVariable else {
+            let context = "'\(variable)' is not valid identifier"
+            throw NutParserError.syntax(fileName: name, context: context, line: line)
+        }
     }
 }
 
 extension NutParser {
-    func checkSimple(variable: String) -> Bool {
-        return VariableCheck.checkSimple(variable: variable)
-    }
-    func checkChained(variable: String) -> Bool {
-        return VariableCheck.checkChained(variable: variable)
+    private enum ViewType {
+        case view
+        case layout
+        case subview
     }
 }
-
-// swiftlint:enable cyclomatic_complexity
-// swiftlint:enable function_body_length
-// swiftlint:enable file_length
