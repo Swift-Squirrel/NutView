@@ -121,6 +121,34 @@ class ViewTests: XCTestCase {
         XCTAssertEqual(interpreted, cnt)
     }
 
+    func testIndex() {
+        let data: [String: Any] = [
+            "username": "Tom",
+            "age": 41
+        ]
+
+        let name = "Index"
+        XCTAssertNoThrow(try View(name: name, with: data))
+        guard let view = try? View(name: name, with: data) else {
+            XCTFail()
+            return
+        }
+
+        XCTAssertNoThrow(try view.getContent())
+
+        guard let interpreted = try? view.getContent() else {
+            XCTFail()
+            return
+        }
+
+        let fileName = "\(name).html"
+        guard let cnt: String = try? (expectedHTMLs + fileName).read() else {
+            XCTFail("Can not read \(fileName)")
+            return
+        }
+        XCTAssertEqual(interpreted, cnt)
+    }
+
     func testMissingVariable() {
         let name = "Posts"
         let view = View(name: name)
@@ -148,6 +176,7 @@ class ViewTests: XCTestCase {
     static let allTests = [
         ("testPosts", testPosts),
         ("testPost", testPost),
+        ("testIndex", testIndex),
         ("testMissingVariable", testMissingVariable)
     ]
 }

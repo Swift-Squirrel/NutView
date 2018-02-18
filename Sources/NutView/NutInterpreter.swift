@@ -336,7 +336,7 @@ extension NutInterpreter {
                 continue
             }
             var superCondition = true
-            var variables = Array<(key: String, value: Any)>()
+            var variables = Array<(key: String, oldValue: Any?)>()
             for cond in thenBlock.conditions {
                 switch cond {
                 case .simple(let condition):
@@ -373,7 +373,8 @@ extension NutInterpreter {
                                                              line: condition.line)
                     }
                     if let value = any {
-                        variables.append((variable, value))
+                        variables.append((variable, data[variable]))
+                        data[variable] = value
                     } else {
                         superCondition = false
                     }
@@ -383,23 +384,23 @@ extension NutInterpreter {
                 }
             }
             if superCondition {
-                var globalVariables = Stack<(key: String, value: Any)>()
-                variables.forEach { (key, value) in
-                    if let val = data[key] {
-                        globalVariables.push((key, val))
-                    }
-                    data[key] = value
-                }
-
                 let desc = try run(body: thenBlock.block)
-
-                variables.forEach { (key, _) in
-                    data.removeValue(forKey: key)
-                }
-                while let (key, value) = globalVariables.pop() {
-                    data[key] = value
-                }
+                variables.forEach({ (key, oldValue) in
+                    if let oldValue = oldValue {
+                        data[key] = oldValue
+                    } else {
+                        data.removeValue(forKey: key)
+                    }
+                })
                 return desc
+            } else {
+                variables.forEach({ (key, oldValue) in
+                    if let oldValue = oldValue {
+                        data[key] = oldValue
+                    } else {
+                        data.removeValue(forKey: key)
+                    }
+                })
             }
         }
         if !ifToken.`else`.isEmpty {

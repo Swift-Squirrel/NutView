@@ -264,9 +264,9 @@ private extension NutParser {
                 variable = nil
             }
             let (cond, newStop) = try lexical.readExpression(until: .leftCurly, .comma)
-            if newStop == .comma {
-                let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
-            }
+//            if newStop == .comma {
+//                let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
+//            }
             let condition = ViewCommands.RawValue(expression: cond.value, line: cond.line)
             if let variable = variable {
                 conditions.append(.cast(variable: variable, condition: condition))
@@ -338,7 +338,7 @@ private extension NutParser {
         if let expValue = expValue {
             guard token.value == expValue else {
                 let context = "Expecting value '\(expValue)' for token '\(tokenId)'"
-                    + "but '\(token)' found"
+                    + " but '\(token)' found"
                 throw NutParserError.syntax(fileName: name, context: context, line: token.line)
             }
         }
