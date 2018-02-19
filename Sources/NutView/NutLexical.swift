@@ -126,11 +126,12 @@ extension NutLexical: LexicalAnalysis {
         }
         let _ = buffer.next()
         let line = buffer.line
-        let (type, stop) = buffer.readEOF(until: .space, .lf, .leftParentless)
+        let (type, stop) = buffer.readEOF(until: .space, .lf, .leftParentless, .rightCurly)
         if type == "" && stop == .leftParentless {
             return CommandToken(type: .escapedValue, line: line)
         }
-        if type == "}" {
+        if type == "" && stop == .rightCurly {
+            let _ = buffer.next()
             if let els = getNextToken(), els.id == .text && els.value == "else" {
                 let _ = nextToken()
                 guard let tok = nextToken() else {
