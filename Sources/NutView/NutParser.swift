@@ -88,6 +88,9 @@ private extension NutParser {
                 case .title:
                     let title = try parseTitle(lexical: lexical, line: line)
                     body.append(title)
+                case .head:
+                    let head = try parseHead(lexical: lexical, line: line)
+                    body.append(head)
                 case .escapedValue:
                     let value = try parseEscapedValue(lexical: lexical)
                     body.append(value)
@@ -264,9 +267,7 @@ private extension NutParser {
                 variable = nil
             }
             let (cond, newStop) = try lexical.readExpression(until: .leftCurly, .comma)
-//            if newStop == .comma {
-//                let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
-//            }
+            
             let condition = ViewCommands.RawValue(expression: cond.value, line: cond.line)
             if let variable = variable {
                 conditions.append(.cast(variable: variable, condition: condition))
@@ -301,6 +302,10 @@ private extension NutParser {
         let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
         let (expr, _) = try lexical.readExpression(until: .rightParentles)
         return ViewCommands.EscapedValue(expression: expr.value, line: expr.line)
+    }
+    func parseHead(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Head {
+        let value = try parseRawValue(lexical: lexical, line: line)
+        return ViewCommands.Head(expression: value, line: line)
     }
     func parseTitle(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Title {
         let value = try parseEscapedValue(lexical: lexical)

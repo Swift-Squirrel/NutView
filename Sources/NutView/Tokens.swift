@@ -88,6 +88,7 @@ struct CommandToken: Equatable, CustomStringConvertible {
 
     enum CommandTokenType: String {
         case title = "Title"
+        case head = "Head"
         case escapedValue = "EscapedValue"
         case rawValue = "RawValue"
         case blockEnd = "}"

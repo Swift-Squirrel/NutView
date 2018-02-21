@@ -80,6 +80,13 @@ extension ViewCommands {
             self.line = line
         }
     }
+
+    struct Head: HeadCommand {
+        let id: CommandType = .head
+        let expression: RawValue
+        let line: Int
+    }
+
     struct Title: HeadCommand {
         let id: CommandType = .title
         let expression: EscapedValue
@@ -252,6 +259,8 @@ extension ViewCommands {
                 try container.encode(subview)
             case let title as Title:
                 try container.encode(title)
+            case let head as Head:
+                try container.encode(head)
             case let value as EscapedValue:
                 try container.encode(value)
             case let value as RawValue:
@@ -299,6 +308,8 @@ extension ViewCommands {
                     command = try container.decode(Subview.self)
                 case .title:
                     command = try container.decode(Title.self)
+                case .head:
+                    command = try container.decode(Head.self)
                 case .`for`:
                     command = try container.decode(For.self)
                 }
@@ -454,6 +465,7 @@ extension ViewCommands {
         case layout
         case subview
         case title
+        case head
         case `for`
     }
 }

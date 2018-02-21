@@ -21,12 +21,12 @@ let package = Package(
         // Your products
     ],
     dependencies: [
-        .package(url: "https://github.com/Swift-Squirrel/NutView.git", from: "0.1.0"),
+        .package(url: "https://github.com/Swift-Squirrel/NutView.git", from: "1.0.2"),
         // Other dependencies
     ],
     targets: [
         .target(
-            name: "Your Targer",
+            name: "Your Target",
             dependencies: [..., "NutView"]),
     ]
 )
@@ -63,8 +63,7 @@ Contains page specific content. For example if we have blog and we want to have 
 Contains reusable parts of page. For example header or footer.
 
 #### Nuts/Layout
-This is actualy our web layout. You can refer to layout from Views which pin View content to Layout at the place where is `\View(...)`
-
+This is actualy our web layout. You can refer to layout from Views which pin View content to Layout at the place where is `\View()`
 
 ### Commands
 
@@ -75,14 +74,15 @@ Commands starts with **\\** symbol. You can escape \\ symbol with \\\\
 |Expression|`\(<expression>)`| Evaluates expression in parentheses and escapes html characters|
 |Raw expression| `\RawValue(<expression>)`| Evalutes expression|
 |Block end|`\}`|Indicates block end in if, for statements|
-|If<br> Else if<br> Else|`\if <expression> {`<br>`\} else if <expression> {` <br>`\} else \{` | If expression is `true` run commands in given block otherwise run else if\|else block if exists|
-|If let<br> Else if let|`\if let <variableName> = <expression> {`<br>`\} else if let <variableName> = <expression> {` | If expression is not `nil` store result in `variableName` and run commands in given block otherwise run else if\|else block if exists|
-|Subview|`\Subview("<name>"`)|Add content of given subview postion of this command. *__Note:__* `name` must be static string. You can not use expression. `name` is using dot notation so instead of `MySubviewSubdirectory/Mysubview.nut` write `MySubviewSubdirectory.Mysubview.nut`.|
+|If<br> Else if<br> Else|`\if <expression> {`<br>`\} else if <expression> {` <br>`\} else {` | If expression is `true` run commands in given block otherwise run else if else block if exists|
+|If let<br> Else if let|`\if let <variableName> = <expression> {`<br>`\} else if let <variableName> = <expression> {` | If expression is not `nil` store result in `variableName` and run commands in given block otherwise run else if else block if exists|
+|Subview|`\Subview(<expression>)`|Add content of given subview at position of this command. *__Note:__* `name` is using dot notation so instead of `MySubviewSubdirectory/Mysubview.nut` write `MySubviewSubdirectory.Mysubview`.|
 |For|`\for <variable> in <Array>`<br>`\for (<key>, <value>) in <Dictionary>`| Iterates over array(`[Any]`) or dictionary(`[String: Any]`)|
 |Date| `\Date(<expression>)`<br>`\Date(<expression>, fromat: <expression>`) | Evaluates expression and print date in given format. If `format` is not set, NutView use default date format specified in `NutConfig.dateDefaultFormat: String { set get }`|
-|Layout|`\Layout("<name>")`| **Only available in Views.** Reffer View to Layout. Must not be more than one occurence of this command in one View.`name` is using dot notation so instead of `MyLayoutSubdirectory/MyLayout.nut` write `MyLayoutSubdirectory.MyLayout.nut`.|
-|Title| `\Title(<expression>)` | **Only available in Views.** Set `<title><\title>` header of html document
-|View|`\View()`|**Only available in Layouts.** Indicates where to place View|
+|Layout|`\Layout(<expression>)`| Reffer View to Layout. `name` is using dot notation so instead of `MyLayoutSubdirectory/MyLayout.nut` write `MyLayoutSubdirectory.MyLayout`.|
+|Title| `\Title(<expression>)` | Set `<title><\title>` header of html document
+|Head|`\Head(<expression>)`|Add expression result inside html head tag|
+|View|`\View()`| Indicates where to place View|
  
 *__Note:__* For evaluating expressions we use [Evaluation](https://github.com/Swift-Squirrel/Nutview)
 
@@ -108,10 +108,9 @@ let postContent = try postView.getContent()
 print(postContent) // prints generated content of page with given data
 
 let postContentData = try postView.present() // Data representation of view
-
 ```
 
-For more examples check [Examples](https://github.com/Swift-Squirrel/Examples)
+For more examples check [Examples](https://github.com/Swift-Squirrel/Examples) or [Squirrel docs](https://squirrel.codes/docs) -> Views
 
 ## Contributing
 

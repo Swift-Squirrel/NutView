@@ -89,8 +89,10 @@ class NutInterpreter: NutInterpreterProtocol {
             switch token {
             case let title as ViewCommands.Title:
                 res += try parse(title: title)
+            case let head as ViewCommands.Head:
+                res += try parse(head: head)
             default:
-                res += convertToSpecialCharacters(string: "UnknownToken<\(token.id)>\n")
+                res += convertToSpecialCharacters(string: "UnknownHeadToken<\(token.id)>\n")
             }
         }
         return res
@@ -150,6 +152,8 @@ class NutInterpreter: NutInterpreterProtocol {
                 layout = layoutName
             case let title as ViewCommands.Title:
                 heads.append(title)
+            case let head as ViewCommands.Head:
+                heads.append(head)
             default:
                 res += convertToSpecialCharacters(string: "UnknownToken<\(token.id)>\n")
             }
@@ -183,9 +187,13 @@ extension NutInterpreter {
 
 // Head parsing
 extension NutInterpreter {
-    fileprivate func parse(title: ViewCommands.Title) throws -> String {
+    private func parse(title: ViewCommands.Title) throws -> String {
         let expr = try parse(expression: title.expression)
-        return "<title>\(expr)</title>"
+        return "<title>\(expr)</title>\n"
+    }
+    private func parse(head: ViewCommands.Head) throws -> String {
+        let expr = try parse(rawExpression: head.expression)
+        return "\(expr)\n"
     }
 }
 
