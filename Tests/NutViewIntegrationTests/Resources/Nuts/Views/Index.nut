@@ -11,4 +11,3 @@
 \}
 <h1>\Date(today)</h1>
 <h2>\Date(today, format: someFormat)</h2>
-<h3>\Date(today, format: "dd mm hh")</h3>
