@@ -10,7 +10,7 @@ let package = Package(
             targets: ["NutView"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Swift-Squirrel/SquirrelJSON.git", from: "0.1.0"),
+        .package(url: "https://github.com/Swift-Squirrel/SquirrelJSON.git", from: "0.1.2"),
         .package(url: "https://github.com/Swift-Squirrel/Squirrel-Core.git", from: "0.1.1"),
         .package(url: "https://github.com/Swift-Squirrel/Evaluation.git",  from: "0.3.1"),
         .package(url: "https://github.com/sharplet/Regex.git",  from: "1.1.0"),

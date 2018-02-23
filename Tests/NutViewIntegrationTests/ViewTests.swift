@@ -124,7 +124,9 @@ class ViewTests: XCTestCase {
     func testIndex() {
         let data: [String: Any] = [
             "username": "Tom",
-            "age": 41
+            "age": 41,
+            "today": Date(timeIntervalSince1970: 3600 * 24 * 365 * 48),
+            "someFormat": "dd mm"
         ]
 
         let name = "Index"
@@ -146,7 +148,7 @@ class ViewTests: XCTestCase {
             XCTFail("Can not read \(fileName)")
             return
         }
-        XCTAssertEqual(interpreted, cnt)
+        XCTAssertEqual(interpreted, String(cnt.dropLast()))
     }
 
     func testMissingVariable() {
