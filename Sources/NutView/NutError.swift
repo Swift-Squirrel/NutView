@@ -153,7 +153,7 @@ public struct OldNutParserError: SquirrelError {
             res = """
                 Syntax error
                 expected:
-                    \(expected.flatMap({ "'" + $0 + "'" }).joined(separator: "\n\t"))
+                    \(expected.compactMap({ "'" + $0 + "'" }).joined(separator: "\n\t"))
                 but got:
                     '\(got)'
                 """
