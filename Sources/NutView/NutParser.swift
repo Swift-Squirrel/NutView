@@ -57,7 +57,6 @@ private extension NutParser {
     func parseCommands() throws -> [Command] {
         // swiftlint:enable function_body_length
 
-        // swiftlint:disable:next nesting
         enum ContextType {
             case main
             case `if`(conditions: [ViewCommands.If.ThenBlock.ConditionType], line: Int)
@@ -213,6 +212,7 @@ private extension NutParser {
         return body
     }
 
+    // swiftlint:disable large_tuple
     func parseFor(lexical: LexicalAnalysis)
         throws -> (key: String?, value: String, collection: String) {
 
@@ -230,21 +230,21 @@ private extension NutParser {
                 let keyToken = try checkNextToken(lexical: lexical, tokenId: .text)
                 try check(variable: keyToken.value, line: keyToken.line, allowNesting: false)
                 key = keyToken.value
-                let _ = try checkNextToken(lexical: lexical, tokenId: .comma)
+                _ = try checkNextToken(lexical: lexical, tokenId: .comma)
                 let valueToken = try checkNextToken(lexical: lexical, tokenId: .text)
                 try check(variable: valueToken.value, line: valueToken.line, allowNesting: false)
                 value = valueToken.value
-                let _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
+                _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
             default:
                 let context = "Expecting 'variable name' or 'tupple' but '\(tok)' found"
                 throw NutParserError.syntax(fileName: name, context: context, line: tok.line)
             }
-            let _ = try checkNextToken(lexical: lexical, tokenId: .text, expValue: "in")
+            _ = try checkNextToken(lexical: lexical, tokenId: .text, expValue: "in")
             let collectionToken = try checkNextToken(lexical: lexical, tokenId: .text)
             try check(variable: collectionToken.value,
                       line: collectionToken.line,
                       allowNesting: true)
-            let _ = try checkNextToken(lexical: lexical, tokenId: .leftCurly)
+            _ = try checkNextToken(lexical: lexical, tokenId: .leftCurly)
             return (key, value, collectionToken.value)
     }
 
@@ -258,16 +258,16 @@ private extension NutParser {
             }
             let variable: String?
             if letToken.id == .text && letToken.value == "let" {
-                let _ = lexical.nextToken()
+                _ = lexical.nextToken()
                 let vari = try checkNextToken(lexical: lexical, tokenId: .text)
                 try check(variable: vari.value, line: vari.line, allowNesting: false)
-                let _ = try checkNextToken(lexical: lexical, tokenId: .equal)
+                _ = try checkNextToken(lexical: lexical, tokenId: .equal)
                 variable = vari.value
             } else {
                 variable = nil
             }
             let (cond, newStop) = try lexical.readExpression(until: .leftCurly, .comma)
-            
+
             let condition = ViewCommands.RawValue(expression: cond.value, line: cond.line)
             if let variable = variable {
                 conditions.append(.cast(variable: variable, condition: condition))
@@ -280,8 +280,8 @@ private extension NutParser {
     }
 
     func parseInserView(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.InsertView {
-        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
-        let _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
+        _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
 
         return ViewCommands.InsertView(line: line)
     }
@@ -294,12 +294,12 @@ private extension NutParser {
         return ViewCommands.Layout(name: value, line: line)
     }
     func parseRawValue(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.RawValue {
-        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
         let (expr, _) = try lexical.readExpression(until: .rightParentles)
         return ViewCommands.RawValue(expression: expr.value, line: line)
     }
     func parseEscapedValue(lexical: LexicalAnalysis) throws -> ViewCommands.EscapedValue {
-        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
         let (expr, _) = try lexical.readExpression(until: .rightParentles)
         return ViewCommands.EscapedValue(expression: expr.value, line: expr.line)
     }
@@ -312,11 +312,11 @@ private extension NutParser {
         return ViewCommands.Title(expression: value, line: line)
     }
     func parseDate(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Date {
-        let _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
+        _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
         let (expr, stop) = try lexical.readExpression(until: .comma, .rightParentles)
         let formatExp: ViewCommands.RawValue?
         if stop == .comma {
-            let _ = try checkNextToken(lexical: lexical,
+            _ = try checkNextToken(lexical: lexical,
                                        tokenId: .namedArgument,
                                        expValue: "format")
             let (format, _) = try lexical.readExpression(until: .rightParentles)
@@ -350,7 +350,6 @@ private extension NutParser {
         return token
     }
     func check(variable: String, line: Int, allowNesting: Bool) throws {
-        // swiftlint:disable:next nesting
         enum State {
             case start
             case inVariable

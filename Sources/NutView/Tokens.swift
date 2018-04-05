@@ -69,7 +69,6 @@ struct HTMLToken: Equatable, CustomStringConvertible {
     let line: Int
 }
 
-
 struct CommandToken: Equatable, CustomStringConvertible {
     var description: String {
         return "\(line): <\(type.rawValue)>"
@@ -104,95 +103,3 @@ struct CommandToken: Equatable, CustomStringConvertible {
     var type: CommandTokenType
     var line: Int
 }
-
-//struct LeftParenthles: Token, Equatable {
-//    static func ==(lhs: LeftParenthles, rhs: LeftParenthles) -> Bool {
-//        return lhs.line == rhs.line
-//    }
-//
-//    var description: String {
-//        return "\(line): <(>"
-//    }
-//
-//    let line: Int
-//}
-//
-//struct RightParenthles: Token, Equatable {
-//    static func ==(lhs: RightParenthles, rhs: RightParenthles) -> Bool {
-//        return lhs.line == rhs.line
-//    }
-//
-//    var description: String {
-//        return "\(line): <)>"
-//    }
-//
-//    let line: Int
-//
-//}
-
-//struct Parethleses: Token, Equatable {
-//    let value: String
-//    let line: Int
-//
-//    static func ==(lhs: Parethleses, rhs: Parethleses) -> Bool {
-//        guard lhs.value == rhs.value && lhs.line == rhs.line else {
-//            return false
-//        }
-//        return true
-//    }
-//
-//    var description: String {
-//        return "\(line): <()> \(value)"
-//    }
-//}
-//
-//struct AnyToken: Token, Equatable {
-//    static func ==(lhs: AnyToken, rhs: AnyToken) -> Bool {
-//        return lhs.value == rhs.value && lhs.line == rhs.line
-//    }
-//
-//    var description: String {
-//        return "\(line): <anyToken> - \(value)"
-//    }
-//
-//    let value: String
-//    let line: Int
-//}
-
-
-//struct Token {
-//    let id: TokenType
-//    let value: String
-//    let line: Int
-//}
-/*
-// MARK: - Equatable
-extension Token: Equatable {
-    static func ==(lhs: Token, rhs: Token) -> Bool {
-        guard lhs.id == rhs.id else {
-            return false
-        }
-        guard lhs.value == rhs.value else {
-            return false
-        }
-        guard lhs.line == rhs.line else {
-            return false
-        }
-        return true
-    }
-}
-
-// MARK: - CustomStringConvertible
-extension Token: CustomStringConvertible {
-    var description: String {
-        return "\(line): <\(id.rawValue)> \(value)"
-    }
-}
-
-// MARK: - TokenType
-extension Token {
-    enum TokenType: String {
-        case html
-        case white
-    }
-}*/

@@ -39,7 +39,6 @@ struct NutResolver: NutResolverProtocol {
         if fruit.exists && fruitValid {
             let content = try fruit.read()
             vCommands = try fruitParser.decodeCommands(data: content)
-
         } else {
             let content: String = try nut.read()
             let parser = NutParser(content: content, name: nutName)

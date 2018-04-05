@@ -16,7 +16,6 @@ extension View: SquirrelPresentable {
         return .html
     }
 
-
     /// View representation in data
     ///
     /// - Returns: View representation in data

@@ -44,9 +44,7 @@ protocol Command: Codable {
     var line: Int { get }
 }
 
-protocol HeadCommand: Command {
-
-}
+protocol HeadCommand: Command { }
 
 protocol ExpressionCommand: Command {
     var expression: String { get }
@@ -114,9 +112,7 @@ extension ViewCommands {
     }
     // swiftlint:disable:next type_name
     struct If: Command {
-        // swiftlint:disable:next nesting
         struct ThenBlock: Codable {
-            // swiftlint:disable:next nesting
             enum ConditionType {
                 case simple(condition: RawValue)
                 case cast(variable: String, condition: RawValue)
@@ -242,8 +238,7 @@ extension ViewCommands {
     static func encode(commands: [Command],
                        unkeyedContainer container: inout UnkeyedEncodingContainer) throws {
 
-        try commands.forEach {
-            command in
+        try commands.forEach { command in
             switch command {
             case let date as ViewCommands.Date:
                 try container.encode(date)
@@ -279,7 +274,6 @@ extension ViewCommands {
     static func decode(unkeyedContainer container: inout UnkeyedDecodingContainer)
         throws -> [Command] {
 
-            // swiftlint:disable:next nesting
             enum NestedCodingKeys: String, CodingKey {
                 case id
             }

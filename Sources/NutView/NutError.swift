@@ -137,7 +137,7 @@ public struct OldNutParserError: SquirrelError {
     /// Kind of error
     public let kind: ErrorKind
     /// Name of file
-    public var name: String? = nil
+    public var name: String?
     /// line of error
     public let line: Int
     private let _description: String?
@@ -150,10 +150,15 @@ public struct OldNutParserError: SquirrelError {
         case .unexpectedEnd(let reading):
             res = "Unexpected end of file while reading: \(reading)"
         case .syntaxError(let expected, let got):
+            #if swift(>=4.1)
+            let exp = expected.compactMap({ "'" + $0 + "'" }).joined(separator: "\n\t")
+            #else
+            let exp = expected.flatMap({ "'" + $0 + "'" }).joined(separator: "\n\t")
+            #endif
             res = """
                 Syntax error
                 expected:
-                    \(expected.compactMap({ "'" + $0 + "'" }).joined(separator: "\n\t"))
+                    \(exp)
                 but got:
                     '\(got)'
                 """

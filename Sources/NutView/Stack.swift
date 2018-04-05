@@ -6,7 +6,7 @@
 //
 
 struct Stack<T> {
-    private var array: Array<T>
+    private var array: [T]
     init() {
         array = [T]()
     }

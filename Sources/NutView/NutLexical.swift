@@ -60,7 +60,7 @@ extension NutLexical: LexicalAnalysis {
             let tokenStarts: [Character] = ["(", ")", "=", "{", "}", ","]
             while let char = buffer.getNext(), !char.isWhite && !tokenStarts.contains(char) {
                 if char == ":" {
-                    let _ = buffer.next()
+                    _ = buffer.next()
                     return Token(id: .namedArgument, value: result, line: line)
                 }
                 result.append(buffer.next()!)
@@ -78,12 +78,11 @@ extension NutLexical: LexicalAnalysis {
 
     func getNextNextToken() -> Token? {
         buffer.stashIndex()
-        let _ = nextToken()
+        _ = nextToken()
         let token = nextToken()
         buffer.popIndex()
         return token
     }
-
 
     func nextHTML() -> HTMLToken {
         let line = buffer.line
@@ -96,8 +95,8 @@ extension NutLexical: LexicalAnalysis {
         let (readValue, _) = buffer.readEOF(until: .backSlash)
         var html = emptyLines + readValue
         while buffer.getNextNext() == "\\" {
-            let _ = buffer.next()
-            let _ = buffer.next()
+            _ = buffer.next()
+            _ = buffer.next()
             html += "\\\(buffer.readEOF(until: .backSlash).value)"
         }
         return HTMLToken(value: html, line: line + emptyLinesCount)
@@ -124,16 +123,16 @@ extension NutLexical: LexicalAnalysis {
         guard buffer.getNext() == "\\" else {
             return nil
         }
-        let _ = buffer.next()
+        _ = buffer.next()
         let line = buffer.line
         let (type, stop) = buffer.readEOF(until: .space, .lf, .leftParentless, .rightCurly)
         if type == "" && stop == .leftParentless {
             return CommandToken(type: .escapedValue, line: line)
         }
         if type == "" && stop == .rightCurly {
-            let _ = buffer.next()
+            _ = buffer.next()
             if let els = getNextToken(), els.id == .text && els.value == "else" {
-                let _ = nextToken()
+                _ = nextToken()
                 guard let tok = nextToken() else {
                     throw LexicalError.unexpectedEnd(expecting: "'{' or 'if'")
                 }
@@ -142,7 +141,8 @@ extension NutLexical: LexicalAnalysis {
                     return CommandToken(type: .`else`, line: line)
                 case .text:
                     guard tok.value == "if" else {
-                        fallthrough
+                        throw LexicalError.unknownCommand("\(type) \(els.value) \(tok.value)",
+                            line: tok.line)
                     }
                     return CommandToken(type: .elseIf, line: line)
                 default:
@@ -234,7 +234,6 @@ public extension NutLexical {
                 return "Unexpected character - expecting \(expected) but got \(got) at line \(line)"
             }
         }
-
     }
 }
 
@@ -287,11 +286,10 @@ extension NutLexical {
                 guard whiteChars.contains(char) else {
                     break
                 }
-                let _ = next()
+                _ = next()
             }
         }
 
-        // swiftlint:disable:next nesting
         enum StopChar: Character {
             case backSlash = "\\"
             case lf = "\n"
@@ -355,7 +353,7 @@ extension NutLexical {
                 if let chr = StopChar(rawValue: char), stopChars.contains(chr) && !inString {
                     stopped = chr
                 } else {
-                    let _ = next()
+                    _ = next()
                     result += char.description
                 }
             }
@@ -366,7 +364,7 @@ extension NutLexical {
             indexes.push((index, line))
         }
         private mutating func dropTopIndex() {
-            let _ = indexes.pop()
+            _ = indexes.pop()
         }
         mutating func popIndex() {
             guard let ind = indexes.pop() else {

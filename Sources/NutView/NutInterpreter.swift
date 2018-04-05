@@ -14,7 +14,7 @@ import SquirrelCore
 import Regex
 
 protocol NutInterpreterProtocol {
-    init(view name: String, with data: [String : Any])
+    init(view name: String, with data: [String: Any])
 
     func resolve() throws -> String
 }
@@ -25,7 +25,7 @@ class NutInterpreter: NutInterpreterProtocol {
     private let resolver: NutResolverProtocol.Type = NutResolver.self
     private let viewName: String
 
-    private var viewContent: String? = nil
+    private var viewContent: String?
 
     required init(view name: String, with data: [String: Any]) {
         currentName = name
@@ -162,22 +162,21 @@ class NutInterpreter: NutInterpreterProtocol {
     }
 }
 
-
 // HTML escapes
 extension NutInterpreter {
     fileprivate func convertToSpecialCharacters(string: String) -> String {
         var newString = string
-        let char_dictionary = [
+        let charDictionary = [
             ("&amp;", "&"),
             ("&lt;", "<"),
             ("&gt;", ">"),
             ("&quot;", "\""),
             ("&apos;", "'")
         ]
-        for (escaped_char, unescaped_char) in char_dictionary {
+        for (escapedChar, unescapedChar) in charDictionary {
             newString = newString.replacingOccurrences(
-                of: unescaped_char,
-                with: escaped_char,
+                of: unescapedChar,
+                with: escapedChar,
                 options: NSString.CompareOptions.literal,
                 range: nil)
         }
@@ -237,7 +236,6 @@ extension NutInterpreter {
             return (data[name] == nil) ? nil : unwrap(any: data[name]!)
         }
     }
-
 }
 
 // Body parsing
@@ -290,7 +288,6 @@ extension NutInterpreter {
     private func parse(forIn: ViewCommands.For) throws -> ViewDescriptor {
         guard let arr = getValue(name: forIn.collection, from: data) else {
             throw OldNutParserError(kind: .missingValue(for: forIn.collection), line: forIn.line)
-
         }
         let prevValue = data[forIn.value]
         var res = ""
@@ -344,7 +341,7 @@ extension NutInterpreter {
                 continue
             }
             var superCondition = true
-            var variables = Array<(key: String, oldValue: Any?)>()
+            var variables = [(key: String, oldValue: Any?)]()
             for cond in thenBlock.conditions {
                 switch cond {
                 case .simple(let condition):
