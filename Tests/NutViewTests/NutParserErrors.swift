@@ -11,7 +11,7 @@ import XCTest
 class NutParserErrors: XCTestCase {
 
     func testDateTokenErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\n\\Date()"
         var expect = NutParserError.lexical(fileName: name, error: .unexpectedCharacter(expected: "Identifier", got: ")", atLine: 2))
 
@@ -31,7 +31,7 @@ class NutParserErrors: XCTestCase {
     }
 
     func testIfErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\n\\if {"
         var expect = NutParserError.lexical(fileName: name, error: .unexpectedCharacter(expected: "Identifier", got: "{", atLine: 2))
         XCTAssertNil(checkError(for: content, expect: expect), "Empty condition")
@@ -61,7 +61,7 @@ class NutParserErrors: XCTestCase {
     }
 
     func testElseIfErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\\if a {\n\\} else if {"
         var expect = NutParserError.lexical(fileName: name, error: .unexpectedCharacter(expected: "Identifier", got: "{", atLine: 2))
 //        expect.name = name
@@ -89,28 +89,28 @@ class NutParserErrors: XCTestCase {
     }
 
     func testLayoutErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         let content = "\n\\Layout(\"deasd"
         let expect = NutParserError.lexical(fileName: name, error: .unexpectedEnd(expecting: "one of [)]"))
         XCTAssertNil(checkError(for: content, expect: expect), "Missing \" in String")
     }
 
     func testSubviewErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         let content = "\n\\Subview(\"deasd"
         let expect = NutParserError.lexical(fileName: name, error: .unexpectedEnd(expecting: "one of [)]"))
         XCTAssertNil(checkError(for: content, expect: expect), "Missing \" in String")
     }
 
     func testTitleErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         let content = "\n\\Title(\"deasd"
         let expect = NutParserError.lexical(fileName: name, error: .unexpectedEnd(expecting: "one of [)]"))
         XCTAssertNil(checkError(for: content, expect: expect), "Missing \" in String")
     }
 
     func testForErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\n\\for "
         var expect = NutParserError.incompleteCommand(fileName: name, expecting: "variable name")
         XCTAssertNil(checkError(for: content, expect: expect), "Missing '{'")
@@ -166,7 +166,7 @@ class NutParserErrors: XCTestCase {
     }
 
     func testExpressionErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\n\\(asd a"
         var expect = NutParserError.lexical(fileName: name, error: .unexpectedEnd(expecting: "one of [)]"))
         XCTAssertNil(checkError(for: content, expect: expect), "Missing ')'")
@@ -177,7 +177,7 @@ class NutParserErrors: XCTestCase {
     }
 
     func testRawValueErrors() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\n\\RawValue(asd a"
         var expect = NutParserError.lexical(fileName: name, error: .unexpectedEnd(expecting: "one of [)]"))
         XCTAssertNil(checkError(for: content, expect: expect), "Missing ')'")
@@ -188,7 +188,7 @@ class NutParserErrors: XCTestCase {
     }
 
     func testVariableName() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\n\\if let 3a = asd {"
         var expect = NutParserError.syntax(fileName: name, context: "Identifier name can not starts with '3'", line: 2)
         XCTAssertNil(checkError(for: content, expect: expect), "if let '3a'")
@@ -242,7 +242,7 @@ class NutParserErrors: XCTestCase {
     }
 
     func testUnexpectedEndIf() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\n\\if let a = asd { asd s"
         var expect = NutParserError.syntax(fileName: name, context: "<if> command is not closed", line: 2)
         XCTAssertNil(checkError(for: content, expect: expect), "if let")
@@ -283,7 +283,7 @@ class NutParserErrors: XCTestCase {
     }
 
     func testUnexpectedEndFor() {
-        let name = "Views/Main.nut"
+        let name = "Views/Main.nut.html"
         var content = "\\for a in b { asd s"
         var expect = NutParserError.syntax(fileName: name, context: "<for> command is not closed", line: 1)
         XCTAssertNil(checkError(for: content, expect: expect), "for in Array")
@@ -298,7 +298,7 @@ class NutParserErrors: XCTestCase {
     }
 
     private func checkError(for content: String, expect: NutParserError) -> String? {
-        let parser = NutParser(content: content, name: "Views/Main.nut")
+        let parser = NutParser(content: content, name: "Views/Main.nut.html")
 
         do {
             _ = try parser.getCommands()

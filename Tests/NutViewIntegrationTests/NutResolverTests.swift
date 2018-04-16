@@ -90,7 +90,7 @@ class NutResolverTests: XCTestCase {
             _ = try resolver.viewCommands(for: name)
             XCTFail()
         } catch let error as NutError {
-            let expected = NutError(kind: .notExists(name: "Subviews/Page/Heada.nut"))
+            let expected = NutError(kind: .notExists(name: "Subviews/Page/Heada.nut.html"))
             XCTAssertEqual(error.description, expected.description)
         } catch let error {
             XCTFail(String(describing: error))

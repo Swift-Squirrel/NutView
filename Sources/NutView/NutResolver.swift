@@ -18,13 +18,17 @@ struct NutResolver: NutResolverProtocol {
     private static var cache: SpecializedCache<ViewCommands> {
         return NutConfig.NutViewCache.cache
     }
+    static private let nutExtension = ".nut.html"
+    static private let fruitExtension = ".fruit"
+
     static func viewCommands(for name: String) throws -> ViewCommands {
-        let nutName = name.replacingAll(matching: "\\.", with: "/") + ".nut"
-        let fruitName = name + ".fruit"
+        let nutName = name.replacingAll(matching: "\\.", with: "/") + nutExtension
+        let fruitName = name + fruitExtension
         let fruitParser: FruitParserProtocol.Type = FruitParser.self
 
         let fruit = NutConfig.fruits + fruitName
         let nut = NutConfig.nuts + nutName
+
         let fruitValid = isValid(fruit: fruit, nut: nut)
         if let token = cache[name], fruitValid {
             return token

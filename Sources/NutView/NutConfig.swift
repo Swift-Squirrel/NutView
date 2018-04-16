@@ -19,7 +19,7 @@ public struct NutConfig {
     /// Directory with *.fruit* files
     public static var fruits = Path().absolute() + "Storage/Fruits"
 
-    /// Directory with *.nut* files
+    /// Directory with *.nut.html* files
     public static var nuts = Path().absolute() + "Resources/NutViews"
 
     /// Default date format

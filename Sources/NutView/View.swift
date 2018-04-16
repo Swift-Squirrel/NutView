@@ -8,7 +8,7 @@
 
 import SquirrelJSON
 
-/// Represents html document generated from *.nut* file
+/// Represents html document generated from *.nut.html* file
 public struct View {
 
     private let name: String
@@ -17,9 +17,9 @@ public struct View {
 
     /// Construct from name of view
     ///
-    /// - Note: For name use dot convention. Instead of "Page/View.nut" use "Page.View"
+    /// - Note: For name use dot convention. Instead of "Page/View.nut.html" use "Page.View"
     ///
-    /// - Parameter name: Name of View file without extension (*.nut*)
+    /// - Parameter name: Name of View file without extension (*.nut.html*)
     public init(name: String) {
         self.name = name
         self.data = [:]
@@ -28,9 +28,9 @@ public struct View {
 
     /// Construct from name of view
     ///
-    /// - Note: For name use dot convention. Instead of "Page/View.nut" use "Page.View"
+    /// - Note: For name use dot convention. Instead of "Page/View.nut.html" use "Page.View"
     ///
-    /// - Parameter name: Name of View file without extension (*.nut*)
+    /// - Parameter name: Name of View file without extension (*.nut.html*)
     /// - Parameter with: Struct or Class with data which will fill the view
     public init<T>(name: String, with object: T?) throws {
         self.name = name
@@ -47,7 +47,7 @@ public struct View {
 
     /// Resolve View and return its content
     ///
-    /// - Returns: Content of resolved *.nut* view and all of ith subviews
+    /// - Returns: Content of resolved *.nut.html* view and all of ith subviews
     /// - Throws: `NutParserError`
     public func getContent() throws -> String {
         return try interpreter.resolve()

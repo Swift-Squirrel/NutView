@@ -38,7 +38,7 @@ class NutParserTests: XCTestCase {
         let parser = NutParser(content: """
             \\Title("Title of post")
             this is about \\(_topic)
-            """, name: "Views/Post.nut")
+            """, name: "Views/Post.nut.html")
 
         guard let viewCommands = try? parser.getCommands() else {
             XCTFail()
@@ -46,11 +46,11 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(viewCommands.body.count, 3)
-        XCTAssert(viewCommands.fileName == "Views/Post.nut")
+        XCTAssert(viewCommands.fileName == "Views/Post.nut.html")
 
         let serialized = viewCommands.serialized
         let expected = try! JSON(json: """
-            {"body":[{"id":"title","expression":{"expression":"\\"Title of post\\"","id":"escapedValue","line":1},"line":1},{"id":"html","value":"\\nthis is about ","line":2},{"expression":"_topic","id":"escapedValue","line":2}],"fileName":"Views\\/Post.nut"}
+            {"body":[{"id":"title","expression":{"expression":"\\"Title of post\\"","id":"escapedValue","line":1},"line":1},{"id":"html","value":"\\nthis is about ","line":2},{"expression":"_topic","id":"escapedValue","line":2}],"fileName":"Views\\/Post.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -77,7 +77,7 @@ class NutParserTests: XCTestCase {
             </body>
             </html>
             """
-        let parser = NutParser(content: content, name: "Layouts/Default.nut")
+        let parser = NutParser(content: content, name: "Layouts/Default.nut.html")
         XCTAssertNoThrow(try parser.getCommands())
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -85,11 +85,11 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssert(viewToken.body.count == 9, String(describing: viewToken.body.count))
-        XCTAssert(viewToken.fileName == "Layouts/Default.nut")
+        XCTAssert(viewToken.fileName == "Layouts/Default.nut.html")
 
         let serialized = viewToken.serialized
         let expected = try! JSON(json: """
-            {"body":[{"id":"html","value":"<!-- Default.html -->\\n<!DOCTYPE html>\\n<html lang=\\"en\\">\\n<head>\\n    ","line":1},{"id":"subview","name":{"id":"rawValue","expression":"\\"Page.Head\\"","line":5},"line":5},{"id":"html","value":"\\n<\\/head>\\n<body>\\n    ","line":6},{"id":"subview","name":{"id":"rawValue","expression":"\\"Page.Header.Jumbotron\\"","line":8},"line":8},{"id":"html","value":"\\n<div class=\\"container\\">\\n    <div class=\\"line\\">\\n        <div class=\\"col-8 mx-auto\\">\\n            ","line":9},{"id":"view","line":12},{"id":"html","value":"\\n        <\\/div>\\n    <\\/div>\\n<\\/div>\\n    ","line":13},{"id":"subview","name":{"id":"rawValue","expression":"\\"Page.Footer\\"","line":16},"line":16},{"id":"html","value":"\\n<\\/body>\\n<\\/html>","line":17}],"fileName":"Layouts\\/Default.nut"}
+            {"body":[{"id":"html","value":"<!-- Default.html -->\\n<!DOCTYPE html>\\n<html lang=\\"en\\">\\n<head>\\n    ","line":1},{"id":"subview","name":{"id":"rawValue","expression":"\\"Page.Head\\"","line":5},"line":5},{"id":"html","value":"\\n<\\/head>\\n<body>\\n    ","line":6},{"id":"subview","name":{"id":"rawValue","expression":"\\"Page.Header.Jumbotron\\"","line":8},"line":8},{"id":"html","value":"\\n<div class=\\"container\\">\\n    <div class=\\"line\\">\\n        <div class=\\"col-8 mx-auto\\">\\n            ","line":9},{"id":"view","line":12},{"id":"html","value":"\\n        <\\/div>\\n    <\\/div>\\n<\\/div>\\n    ","line":13},{"id":"subview","name":{"id":"rawValue","expression":"\\"Page.Footer\\"","line":16},"line":16},{"id":"html","value":"\\n<\\/body>\\n<\\/html>","line":17}],"fileName":"Layouts\\/Default.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -99,7 +99,7 @@ class NutParserTests: XCTestCase {
         let content = """
             dmth \\unknown()
             """
-        let parser = NutParser(content: content, name: "Subviews/Unknown.nut")
+        let parser = NutParser(content: content, name: "Subviews/Unknown.nut.html")
         XCTAssertThrowsError(try parser.getCommands())
 
         do {
@@ -125,7 +125,7 @@ class NutParserTests: XCTestCase {
         let content = """
             dmth \\\\(smth)
             """
-        let parser = NutParser(content: content, name: "Subviews/Unknown.nut")
+        let parser = NutParser(content: content, name: "Subviews/Unknown.nut.html")
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
             return
@@ -164,7 +164,7 @@ class NutParserTests: XCTestCase {
                 \\(key + " " + value)
             \\}pdso a
             """
-        let parser = NutParser(content: content, name: "Subviews/Smt.nut")
+        let parser = NutParser(content: content, name: "Subviews/Smt.nut.html")
         XCTAssertNoThrow(try parser.getCommands())
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -172,12 +172,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssert(viewToken.body.count == 13, String(describing: viewToken.body.count))
-        XCTAssert(viewToken.fileName == "Subviews/Smt.nut")
+        XCTAssert(viewToken.fileName == "Subviews/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"html","value":"dasd alm ak po\\n","line":1},{"id":"date","date":{"id":"rawValue","expression":"date","line":2},"line":2},{"id":"html","value":" oid\\n","line":2},{"id":"if","line":3,"thens":[{"block":[{"id":"html","value":"\\n    asd a ","line":4},{"format":{"id":"rawValue","expression":"\\"m\\" + years","line":4},"id":"date","line":4,"date":{"id":"rawValue","expression":"date1","line":4}},{"id":"html","value":" asda\\n","line":4}],"conditions":[{"condition":{"id":"rawValue","expression":"true ","line":3}}],"line":3}]},{"id":"html","value":"\\n","line":6},{"id":"if","line":6,"thens":[{"block":[{"id":"html","value":"\\n    true\\n","line":7}],"conditions":[{"condition":{"id":"rawValue","expression":"1 + 3 == 4 ","line":6}}],"line":6},{"block":[{"id":"html","value":"\\n    ","line":9},{"id":"escapedValue","expression":"true","line":9},{"id":"html","value":"\\n","line":10}],"conditions":[{"condition":{"id":"rawValue","expression":"true == true ","line":8}}],"line":8},{"block":[{"id":"html","value":"\\n    doefja e\\n","line":11}],"conditions":[{"condition":{"id":"rawValue","expression":"posts ","line":10},"variable":"notNil"}],"line":10}]},{"id":"html","value":"\\n","line":13},{"else":[{"id":"html","value":"\\n    ds\\n    ","line":16},{"id":"subview","name":{"id":"rawValue","expression":"\\"Map\\"","line":17},"line":17},{"id":"html","value":"\\n","line":18}],"thens":[{"block":[{"id":"html","value":"\\n    dfe\\n","line":14}],"conditions":[{"condition":{"id":"rawValue","expression":"Tom ","line":13},"variable":"asd"}],"line":13}],"id":"if","line":13},{"id":"html","value":"\\n\\n","line":20},{"collection":"posts","value":"post","id":"for","commands":[{"id":"html","value":"\\n    ","line":21},{"id":"rawValue","expression":"post.body","line":21},{"id":"html","value":"\\n","line":22}],"line":20},{"id":"html","value":"\\n","line":23},{"collection":"dictionary","value":"value","id":"for","commands":[{"id":"html","value":"\\n    ","line":24},{"id":"escapedValue","expression":"key + \\" \\" + value","line":24},{"id":"html","value":"\\n","line":25}],"key":"key","line":23},{"id":"html","value":"pdso a","line":25}],"fileName":"Subviews\\/Smt.nut"}
+            {"body":[{"id":"html","value":"dasd alm ak po\\n","line":1},{"id":"date","date":{"id":"rawValue","expression":"date","line":2},"line":2},{"id":"html","value":" oid\\n","line":2},{"id":"if","line":3,"thens":[{"block":[{"id":"html","value":"\\n    asd a ","line":4},{"format":{"id":"rawValue","expression":"\\"m\\" + years","line":4},"id":"date","line":4,"date":{"id":"rawValue","expression":"date1","line":4}},{"id":"html","value":" asda\\n","line":4}],"conditions":[{"condition":{"id":"rawValue","expression":"true ","line":3}}],"line":3}]},{"id":"html","value":"\\n","line":6},{"id":"if","line":6,"thens":[{"block":[{"id":"html","value":"\\n    true\\n","line":7}],"conditions":[{"condition":{"id":"rawValue","expression":"1 + 3 == 4 ","line":6}}],"line":6},{"block":[{"id":"html","value":"\\n    ","line":9},{"id":"escapedValue","expression":"true","line":9},{"id":"html","value":"\\n","line":10}],"conditions":[{"condition":{"id":"rawValue","expression":"true == true ","line":8}}],"line":8},{"block":[{"id":"html","value":"\\n    doefja e\\n","line":11}],"conditions":[{"condition":{"id":"rawValue","expression":"posts ","line":10},"variable":"notNil"}],"line":10}]},{"id":"html","value":"\\n","line":13},{"else":[{"id":"html","value":"\\n    ds\\n    ","line":16},{"id":"subview","name":{"id":"rawValue","expression":"\\"Map\\"","line":17},"line":17},{"id":"html","value":"\\n","line":18}],"thens":[{"block":[{"id":"html","value":"\\n    dfe\\n","line":14}],"conditions":[{"condition":{"id":"rawValue","expression":"Tom ","line":13},"variable":"asd"}],"line":13}],"id":"if","line":13},{"id":"html","value":"\\n\\n","line":20},{"collection":"posts","value":"post","id":"for","commands":[{"id":"html","value":"\\n    ","line":21},{"id":"rawValue","expression":"post.body","line":21},{"id":"html","value":"\\n","line":22}],"line":20},{"id":"html","value":"\\n","line":23},{"collection":"dictionary","value":"value","id":"for","commands":[{"id":"html","value":"\\n    ","line":24},{"id":"escapedValue","expression":"key + \\" \\" + value","line":24},{"id":"html","value":"\\n","line":25}],"key":"key","line":23},{"id":"html","value":"pdso a","line":25}],"fileName":"Subviews\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -189,7 +189,7 @@ class NutParserTests: XCTestCase {
             \\Layout("Default")
             \\Title("ds")
             """
-        let parser = NutParser(content: content, name: "Views/Smt.nut")
+        let parser = NutParser(content: content, name: "Views/Smt.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -197,12 +197,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(4, viewToken.body.count)
-        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut")
+        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"html","value":"dasd alm ak po\\n","line":1},{"id":"layout","name":{"id":"rawValue","expression":"\\"Default\\"","line":2},"line":2},{"id":"html","value":"\\n","line":3},{"id":"title","expression":{"id":"escapedValue","expression":"\\"ds\\"","line":3},"line":3}],"fileName":"Views\\/Smt.nut"}
+            {"body":[{"id":"html","value":"dasd alm ak po\\n","line":1},{"id":"layout","name":{"id":"rawValue","expression":"\\"Default\\"","line":2},"line":2},{"id":"html","value":"\\n","line":3},{"id":"title","expression":{"id":"escapedValue","expression":"\\"ds\\"","line":3},"line":3}],"fileName":"Views\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -213,7 +213,7 @@ class NutParserTests: XCTestCase {
             \\(tag)
             \\RawValue(tag)
             """
-        let parser = NutParser(content: content, name: "Views/V1.nut")
+        let parser = NutParser(content: content, name: "Views/V1.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -221,12 +221,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssert(viewToken.body.count == 3, String(describing: viewToken.body.count))
-        XCTAssert(viewToken.fileName == "Views/V1.nut")
+        XCTAssert(viewToken.fileName == "Views/V1.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"escapedValue","expression":"tag","line":1},{"id":"html","value":"\\n","line":2},{"id":"rawValue","expression":"tag","line":2}],"fileName":"Views\\/V1.nut"}
+            {"body":[{"id":"escapedValue","expression":"tag","line":1},{"id":"html","value":"\\n","line":2},{"id":"rawValue","expression":"tag","line":2}],"fileName":"Views\\/V1.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -239,7 +239,7 @@ class NutParserTests: XCTestCase {
             \\View()
                 fa
             """
-        let parser = NutParser(content: content, name: "Layouts/Smt.nut")
+        let parser = NutParser(content: content, name: "Layouts/Smt.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -247,12 +247,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssert(viewToken.body.count == 3, String(describing: viewToken.body.count))
-        XCTAssert(viewToken.fileName == "Layouts/Smt.nut")
+        XCTAssert(viewToken.fileName == "Layouts/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"html","value":"dasd alm ak po\\n","line":1},{"id":"view","line":2},{"id":"html","value":"\\n    fa","line":3}],"fileName":"Layouts\\/Smt.nut"}
+            {"body":[{"id":"html","value":"dasd alm ak po\\n","line":1},{"id":"view","line":2},{"id":"html","value":"\\n    fa","line":3}],"fileName":"Layouts\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -270,7 +270,7 @@ class NutParserTests: XCTestCase {
         <li>\\\\Date(_:format:)</li>
         </ul>
         """
-        let parser = NutParser(content: content, name: "Views/Smt.nut")
+        let parser = NutParser(content: content, name: "Views/Smt.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -278,12 +278,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(viewToken.body.count, 4)
-        XCTAssert(viewToken.fileName == "Views/Smt.nut")
+        XCTAssert(viewToken.fileName == "Views/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"layout","name":{"id":"rawValue","expression":"\\"DefaultLayout\\"","line":1},"line":1},{"id":"html","value":"\\n","line":2},{"id":"title","expression":{"id":"escapedValue","expression":"\\"Dates\\"","line":2},"line":2},{"id":"html","value":"\\n\\n<h1>Dates<\\/h1>\\nDate(_:format:)\\n<ul>\\n<li>\\\\Date(_:)<\\/li>\\n<li>\\\\Date(_:format:)<\\/li>\\n<\\/ul>","line":4}],"fileName":"Views\\/Smt.nut"}
+            {"body":[{"id":"layout","name":{"id":"rawValue","expression":"\\"DefaultLayout\\"","line":1},"line":1},{"id":"html","value":"\\n","line":2},{"id":"title","expression":{"id":"escapedValue","expression":"\\"Dates\\"","line":2},"line":2},{"id":"html","value":"\\n\\n<h1>Dates<\\/h1>\\nDate(_:format:)\\n<ul>\\n<li>\\\\Date(_:)<\\/li>\\n<li>\\\\Date(_:format:)<\\/li>\\n<\\/ul>","line":4}],"fileName":"Views\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -293,7 +293,7 @@ class NutParserTests: XCTestCase {
         let content = """
         \\if let _a = a {\\(a)\\}
         """
-        let parser = NutParser(content: content, name: "Views/Smt.nut")
+        let parser = NutParser(content: content, name: "Views/Smt.nut.html")
         XCTAssertNoThrow(try parser.getCommands())
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -301,12 +301,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(viewToken.body.count, 1)
-        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut")
+        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"_a"}],"line":1}]}],"fileName":"Views\\/Smt.nut"}
+            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"_a"}],"line":1}]}],"fileName":"Views\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -317,7 +317,7 @@ class NutParserTests: XCTestCase {
         let content = """
         \\if let __a = a {\\(a)\\}
         """
-        let parser = NutParser(content: content, name: "Views/Smt1.nut")
+        let parser = NutParser(content: content, name: "Views/Smt1.nut.html")
 
         var vt: ViewCommands! = nil
 
@@ -330,12 +330,12 @@ class NutParserTests: XCTestCase {
 
 
         XCTAssertEqual(viewToken.body.count, 1)
-        XCTAssertEqual(viewToken.fileName, "Views/Smt1.nut")
+        XCTAssertEqual(viewToken.fileName, "Views/Smt1.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"__a"}],"line":1}]}],"fileName":"Views\\/Smt1.nut"}
+            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"__a"}],"line":1}]}],"fileName":"Views\\/Smt1.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -345,7 +345,7 @@ class NutParserTests: XCTestCase {
         let content = """
         \\if let _a_ = a {\\(a)\\}
         """
-        let parser = NutParser(content: content, name: "Views/Smt.nut")
+        let parser = NutParser(content: content, name: "Views/Smt.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -353,12 +353,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(viewToken.body.count, 1)
-        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut")
+        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"_a_"}],"line":1}]}],"fileName":"Views\\/Smt.nut"}
+            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"_a_"}],"line":1}]}],"fileName":"Views\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -368,7 +368,7 @@ class NutParserTests: XCTestCase {
         let content = """
         \\if let a_=a{\\(a)\\}
         """
-        let parser = NutParser(content: content, name: "Views/Smt.nut")
+        let parser = NutParser(content: content, name: "Views/Smt.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -376,12 +376,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(viewToken.body.count, 1)
-        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut")
+        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a","line":1},"variable":"a_"}],"line":1}]}],"fileName":"Views\\/Smt.nut"}
+            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a","line":1},"variable":"a_"}],"line":1}]}],"fileName":"Views\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -391,7 +391,7 @@ class NutParserTests: XCTestCase {
         let content = """
         \\if let a_a_a = a {\\(a)\\}
         """
-        let parser = NutParser(content: content, name: "Views/Smt.nut")
+        let parser = NutParser(content: content, name: "Views/Smt.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -399,12 +399,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(viewToken.body.count, 1)
-        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut")
+        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"a_a_a"}],"line":1}]}],"fileName":"Views\\/Smt.nut"}
+            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"a ","line":1},"variable":"a_a_a"}],"line":1}]}],"fileName":"Views\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
@@ -414,7 +414,7 @@ class NutParserTests: XCTestCase {
         let content = """
         \\if let a = _a._b_ {\\(a)\\}
         """
-        let parser = NutParser(content: content, name: "Views/Smt.nut")
+        let parser = NutParser(content: content, name: "Views/Smt.nut.html")
 
         guard let viewToken = try? parser.getCommands() else {
             XCTFail()
@@ -422,12 +422,12 @@ class NutParserTests: XCTestCase {
         }
 
         XCTAssertEqual(viewToken.body.count, 1)
-        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut")
+        XCTAssertEqual(viewToken.fileName, "Views/Smt.nut.html")
 
         let serialized = viewToken.serialized
 
         let expected = try! JSON(json: """
-            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"_a._b_ ","line":1},"variable":"a"}],"line":1}]}],"fileName":"Views\\/Smt.nut"}
+            {"body":[{"id":"if","line":1,"thens":[{"block":[{"id":"escapedValue","expression":"a","line":1}],"conditions":[{"condition":{"id":"rawValue","expression":"_a._b_ ","line":1},"variable":"a"}],"line":1}]}],"fileName":"Views\\/Smt.nut.html"}
             """)
 
         XCTAssertEqual(serialized, expected)
