@@ -40,14 +40,14 @@ import NutView
 
 ## Usage
 
-NutView uses special swift-like syntax in *.nut* files which provide great readability for swift developers.
+NutView uses special swift-like syntax in *.nut.html* files which provide great readability for swift developers.
 
 ### Directory structure
 
 NutView use two important directories. 
 
-- First (default name: "**Nuts**") contains another three subdirectories with *.nut* files (*Views*, *Layouts*, *Subviews*). In theese three directories you can add another directories or add and edit *.nut* files.
-- Second (defualt name: "**Fruits**") contains generated files from your *.nut* files. (Don't change content of this directory)
+- First (default name: "**Nuts**") contains another three subdirectories with *.nut.html* files (*Views*, *Layouts*, *Subviews*). In theese three directories you can add another directories or add and edit *.nut.html* files.
+- Second (defualt name: "**Fruits**") contains generated files from your *.nut.html* files. (Don't change content of this directory)
 
 You can change this directories with
 
@@ -76,10 +76,10 @@ Commands starts with **\\** symbol. You can escape \\ symbol with \\\\
 |Block end|`\}`|Indicates block end in if, for statements|
 |If<br> Else if<br> Else|`\if <expression> {`<br>`\} else if <expression> {` <br>`\} else {` | If expression is `true` run commands in given block otherwise run else if else block if exists|
 |If let<br> Else if let|`\if let <variableName> = <expression> {`<br>`\} else if let <variableName> = <expression> {` | If expression is not `nil` store result in `variableName` and run commands in given block otherwise run else if else block if exists|
-|Subview|`\Subview(<expression>)`|Add content of given subview at position of this command. *__Note:__* `name` is using dot notation so instead of `MySubviewSubdirectory/Mysubview.nut` write `MySubviewSubdirectory.Mysubview`.|
+|Subview|`\Subview(<expression>)`|Add content of given subview at position of this command. *__Note:__* `name` is using dot notation so instead of `MySubviewSubdirectory/Mysubview.nut.html` write `MySubviewSubdirectory.Mysubview`.|
 |For|`\for <variable> in <Array>`<br>`\for (<key>, <value>) in <Dictionary>`| Iterates over array(`[Any]`) or dictionary(`[String: Any]`)|
 |Date| `\Date(<expression>)`<br>`\Date(<expression>, fromat: <expression>`) | Evaluates expression and print date in given format. If `format` is not set, NutView use default date format specified in `NutConfig.dateDefaultFormat: String { set get }`|
-|Layout|`\Layout(<expression>)`| Reffer View to Layout. `name` is using dot notation so instead of `MyLayoutSubdirectory/MyLayout.nut` write `MyLayoutSubdirectory.MyLayout`.|
+|Layout|`\Layout(<expression>)`| Reffer View to Layout. `name` is using dot notation so instead of `MyLayoutSubdirectory/MyLayout.nut.html` write `MyLayoutSubdirectory.MyLayout`.|
 |Title| `\Title(<expression>)` | Set `<title><\title>` header of html document
 |Head|`\Head(<expression>)`|Add expression result inside html head tag|
 |View|`\View()`| Indicates where to place View|
@@ -93,7 +93,7 @@ Commands starts with **\\** symbol. You can escape \\ symbol with \\\\
 ```swift
 import NutView
 
-let indexView = View(name: "Index") // We don't have to write .nut 
+let indexView = View(name: "Index") // We don't have to write .nut.html 
 let indexContent = try indexView.getContent()
 print(indexContent) // prints generated content of index
 
