@@ -10,6 +10,7 @@ import SquirrelCache
 
 /// Configuration class with *nut* and *fruit* directories
 public struct NutConfig {
+
     private init() {
         if !NutConfig.fruits.exists {
             try? NutConfig.fruits.mkpath()

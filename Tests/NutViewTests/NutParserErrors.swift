@@ -297,6 +297,22 @@ class NutParserErrors: XCTestCase {
         XCTAssertNil(checkError(for: content, expect: expect), "Unexpected '\\}'")
     }
 
+    func testUnknownCommand() {
+        let name = "Views/Main.nut.html"
+        var content = "\\for a in b { asd \\s }"
+
+        var expect = NutParserError.lexical(fileName: name, error: .unknownCommand("s", line: 1))
+        XCTAssertNil(checkError(for: content, expect: expect), "unknown s")
+
+        content = "\n\n\n\n\n\n\\LTE \\GMA"
+        expect = NutParserError.lexical(fileName: name, error: .unknownCommand("LTE", line: 7))
+        XCTAssertNil(checkError(for: content, expect: expect), "unknown LTE")
+
+        content = "\n\n\n\n\n\n\\for (a, b) in c { asd s \\} \\Vie"
+        expect = NutParserError.lexical(fileName: name, error: .unknownCommand("Vie", line: 7))
+        XCTAssertNil(checkError(for: content, expect: expect), "unknown Vie")
+    }
+
     private func checkError(for content: String, expect: NutParserError) -> String? {
         let parser = NutParser(content: content, name: "Views/Main.nut.html")
 
@@ -322,6 +338,7 @@ class NutParserErrors: XCTestCase {
         ("testSubviewErrors", testSubviewErrors),
         ("testTitleErrors", testTitleErrors),
         ("testForErrors", testForErrors),
+        ("testUnknownCommand", testUnknownCommand),
         ("testExpressionErrors", testExpressionErrors),
         ("testRawValueErrors", testRawValueErrors),
         ("testVariableName", testVariableName),

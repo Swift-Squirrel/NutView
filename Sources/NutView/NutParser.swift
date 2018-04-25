@@ -236,7 +236,7 @@ private extension NutParser {
                 value = valueToken.value
                 _ = try checkNextToken(lexical: lexical, tokenId: .rightParentles)
             default:
-                let context = "Expecting 'variable name' or 'tupple' but '\(tok)' found"
+                let context = "Expecting 'variable name' or 'tuple' but '\(tok)' found"
                 throw NutParserError.syntax(fileName: name, context: context, line: tok.line)
             }
             _ = try checkNextToken(lexical: lexical, tokenId: .text, expValue: "in")

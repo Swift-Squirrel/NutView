@@ -73,8 +73,8 @@ class ViewTests: XCTestCase {
                  brief: "About cats.", likes: 2, dislikes: 1)
         ]
         let name = "Posts"
-        XCTAssertNoThrow(try View(name: name, with: data))
-        guard let view = try? View(name: name, with: data) else {
+        XCTAssertNoThrow(try View(name, with: data))
+        guard let view = try? View(name, with: data) else {
             XCTFail()
             return
         }
@@ -100,8 +100,8 @@ class ViewTests: XCTestCase {
                         brief: "About dogs.", likes: 1, dislikes: 0)
 
         let name = "Post"
-        XCTAssertNoThrow(try View(name: name, with: data))
-        guard let view = try? View(name: name, with: data) else {
+        XCTAssertNoThrow(try View(name, with: data))
+        guard let view = try? View(name, with: data) else {
             XCTFail()
             return
         }
@@ -130,8 +130,8 @@ class ViewTests: XCTestCase {
         ]
 
         let name = "Index"
-        XCTAssertNoThrow(try View(name: name, with: data))
-        guard let view = try? View(name: name, with: data) else {
+        XCTAssertNoThrow(try View(name, with: data))
+        guard let view = try? View(name, with: data) else {
             XCTFail()
             return
         }
@@ -153,7 +153,7 @@ class ViewTests: XCTestCase {
 
     func testMissingVariable() {
         let name = "Posts"
-        let view = View(name: name)
+        let view = View(name)
 
         var expected = OldNutParserError(kind: .missingValue(for: "posts"), line: 13)
         expected.name = "Views/Posts.nut.html"
