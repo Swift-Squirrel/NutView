@@ -9,7 +9,7 @@
 import SquirrelJSON
 
 /// Represents html document generated from *.nut.html* file
-public struct View {
+public class View {
 
     private let name: String
     private let data: [String: Any]
@@ -20,10 +20,8 @@ public struct View {
     /// - Note: For name use dot convention. Instead of "Page/View.nut.html" use "Page.View"
     ///
     /// - Parameter name: Name of View file without extension (*.nut.html*)
-    public init(_ name: String) {
-        self.name = name
-        self.data = [:]
-        self.interpreter = NutInterpreter(view: name, with: data)
+    public convenience init(_ name: String) {
+        self.init(name, with: [:])
     }
 
     /// Construct from name of view
@@ -32,13 +30,19 @@ public struct View {
     ///
     /// - Parameter name: Name of View file without extension (*.nut.html*)
     /// - Parameter with: Struct or Class with data which will fill the view
-    public init<T>(_ name: String, with object: T) throws {
-        self.name = name
+    public convenience init<T>(_ name: String, with object: T) throws {
         guard let data = JSONCoding.encodeSerializeJSON(object: object) as? [String: Any] else {
             throw JSONError(kind: .encodeError, description: "Encode error")
         }
-        self.data = data
-        interpreter = NutInterpreter(view: name, with: data)
+        self.init(name, with: data)
+    }
+
+    private init(_ name: String, with data: [String: Any]) {
+        self.name = name
+        var resData = data
+        resData["view"] = self.name
+        self.data = resData
+        self.interpreter = NutInterpreter(view: name, with: self.data)
     }
 
     /// Constructs from name of view
@@ -48,7 +52,7 @@ public struct View {
     ///
     /// - Parameter name: Name of View file without extension (*.nut.html*)
     @available(*, deprecated: 1.0.5, message: "Use init(_:) instead")
-    public init(name: String) {
+    public convenience init(name: String) {
         self.init(name)
     }
 
@@ -59,7 +63,7 @@ public struct View {
     /// - Parameter name: Name of View file without extension (*.nut.html*)
     /// - Parameter with: Struct or Class with data which will fill the view
     @available(*, deprecated: 1.0.5, message: "Use init(_:with:) instead")
-    public init<T>(name: String, with object: T?) throws {
+    public convenience init<T>(name: String, with object: T?) throws {
         if let obj = object {
             try self.init(name, with: obj)
         } else {
