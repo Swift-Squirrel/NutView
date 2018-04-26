@@ -82,9 +82,16 @@ Commands starts with **\\** symbol. You can escape \\ symbol with \\\\
 |Layout|`\Layout(<expression>)`| Reffer View to Layout. `name` is using dot notation so instead of `MyLayoutSubdirectory/MyLayout.nut.html` write `MyLayoutSubdirectory.MyLayout`.|
 |Title| `\Title(<expression>)` | Set `<title><\title>` header of html document
 |Head|`\Head(<expression>)`|Add expression result inside html head tag|
+|Body|`\Body(<expression>)`|Add expression result at the end of html body tag|
 |View|`\View()`| Indicates where to place View|
  
 *__Note:__* For evaluating expressions we use [Evaluation](https://github.com/Swift-Squirrel/Nutview)
+
+### Implicit variables
+
+Some variables are implicit so you don't have to send them as data.
+
+- `view` - This variable contains View name
 
 ### Examples
 

@@ -36,10 +36,10 @@ class NutInterpreter: NutInterpreterProtocol {
     func resolve() throws -> String {
         let viewCommands = try resolver.viewCommands(for: viewName)
         do {
-            var head: [HeadCommand]
             let descriptor = try run(body: viewCommands.body)
             viewContent = descriptor.content
-            head = descriptor.head
+            var head = descriptor.head
+            var bodyAppending = descriptor.bodyAppends
 
             var result: String
             if let layout = descriptor.layout {
@@ -51,25 +51,41 @@ class NutInterpreter: NutInterpreterProtocol {
                 currentName = prevName
                 head += desc.head
                 result = desc.content
+                bodyAppending += desc.bodyAppends
             } else {
                 result = descriptor.content
             }
 
-            if head.count > 0 {
-                let headResult = try run(head: head)
-
+            if !head.isEmpty {
                 let headTag = Regex("[\\s\\S]*<head>[\\s\\S]*</head>[\\s\\S]*")
                 if headTag.matches(result) {
-                    result.replaceFirst(matching: "</head>", with: headResult + "\n</head>")
+                    result.replaceFirst(matching: "</head>", with: head + "\n</head>")
                 } else {
                     let bodyTag = Regex("[\\s\\S]*<body>[\\s\\S]*</body>[\\s\\S]*")
                     if bodyTag.matches(result) {
                         result.replaceFirst(
                             matching: "<body>",
-                            with: "<head>\n" + headResult + "\n</head>\n<body>")
+                            with: "<head>\n" + head + "\n</head>\n<body>")
                     } else {
-                        result = "<!DOCTYPE>\n<html>\n<head>\n" + headResult
+                        result = "<!DOCTYPE>\n<html>\n<head>\n" + head
                             + "\n</head>\n<body>\n" + result + "\n</body>\n</html>"
+                    }
+                }
+            }
+
+            if !bodyAppending.isEmpty {
+                let bodyTag = Regex("[\\s\\S]*<body>[\\s\\S]*</body>[\\s\\S]*")
+                if bodyTag.matches(result) {
+                    result.replaceFirst(matching: "</body>", with: "\(bodyAppending)</body>")
+                } else {
+                    let headTag = Regex("[\\s\\S]*<head>[\\s\\S]*</head>[\\s\\S]*")
+                    if headTag.matches(result) {
+                        result.replaceFirst(
+                            matching: "</head>",
+                            with: "</head><body>\n\(bodyAppending)</body>")
+                    } else {
+                        result = "<!DOCTYPE>\n<html>\n<head>\n</head>\n<body>\n\(result)"
+                            + "\n\n\(bodyAppending)</body>\n</html>"
                     }
                 }
             }
@@ -83,24 +99,26 @@ class NutInterpreter: NutInterpreterProtocol {
         }
     }
 
-    private func run(head: [HeadCommand]) throws -> String {
-        var res = ""
-        for token in head {
-            switch token {
-            case let title as ViewCommands.Title:
-                res += try parse(title: title)
-            case let head as ViewCommands.Head:
-                res += try parse(head: head)
-            default:
-                res += convertToSpecialCharacters(string: "UnknownHeadToken<\(token.id)>\n")
-            }
-        }
-        return res
-    }
+    // TODO remove
+//    private func run(head: [HeadCommand]) throws -> String {
+//        var res = ""
+//        for token in head {
+//            switch token {
+//            case let title as ViewCommands.Title:
+//                res += try parse(title: title)
+//            case let head as ViewCommands.Head:
+//                res += try parse(head: head)
+//            default:
+//                res += convertToSpecialCharacters(string: "UnknownHeadToken<\(token.id)>\n")
+//            }
+//        }
+//        return res
+//    }
 
     struct ViewDescriptor {
         let content: String
-        let head: [HeadCommand]
+        let head: String
+        let bodyAppends: String
         let layout: String?
     }
 
@@ -109,8 +127,9 @@ class NutInterpreter: NutInterpreterProtocol {
     private func run(body: [Command]) throws -> ViewDescriptor {
         // swiftlint:enable function_body_length
         var res = ""
-        var heads = [HeadCommand]()
+        var heads = ""
         var layout: String? = nil
+        var bodyAppends = ""
         for token in body {
             switch token {
             case let expression as ViewCommands.EscapedValue:
@@ -121,10 +140,12 @@ class NutInterpreter: NutInterpreterProtocol {
                 let desc = try parse(forIn: forIn)
                 heads += desc.head
                 res += desc.content
+                bodyAppends += desc.bodyAppends
                 layout = desc.layout ?? layout
             case let ifToken as ViewCommands.If:
                 let desc = try parse(if: ifToken)
                 heads += desc.head
+                bodyAppends += desc.bodyAppends
                 res += desc.content
                 layout = desc.layout ?? layout
             case let text as ViewCommands.HTML:
@@ -146,19 +167,22 @@ class NutInterpreter: NutInterpreterProtocol {
                 currentName = prevName
                 res += desc.content
                 heads += desc.head
+                bodyAppends += desc.bodyAppends
                 layout = desc.layout ?? layout
             case let layoutToken as ViewCommands.Layout:
                 let layoutName = try parse(rawExpression: layoutToken.name)
                 layout = layoutName
             case let title as ViewCommands.Title:
-                heads.append(title)
+                heads += try parse(title: title)
             case let head as ViewCommands.Head:
-                heads.append(head)
+                heads += try parse(head: head)
+            case let bodyToken as ViewCommands.Body:
+                bodyAppends += try parse(body: bodyToken)
             default:
                 res += convertToSpecialCharacters(string: "UnknownToken<\(token.id)>\n")
             }
         }
-        return ViewDescriptor(content: res, head: heads, layout: layout)
+        return ViewDescriptor(content: res, head: heads, bodyAppends: bodyAppends, layout: layout)
     }
 }
 
@@ -192,6 +216,14 @@ extension NutInterpreter {
     }
     private func parse(head: ViewCommands.Head) throws -> String {
         let expr = try parse(rawExpression: head.expression)
+        return "\(expr)\n"
+    }
+}
+
+// MARK: - Body appending commands
+extension NutInterpreter {
+    private func parse(body: ViewCommands.Body) throws -> String {
+        let expr = try parse(rawExpression: body.expression)
         return "\(expr)\n"
     }
 }
@@ -291,7 +323,8 @@ extension NutInterpreter {
         }
         let prevValue = data[forIn.value]
         var res = ""
-        var heads = [HeadCommand]()
+        var bodyAppends = ""
+        var heads = ""
         var layout: String? = nil
         if let keyName = forIn.key {
             let prevKey = data[keyName]
@@ -306,6 +339,7 @@ extension NutInterpreter {
                 let desc = try run(body: forIn.commands)
                 res += desc.content
                 heads += desc.head
+                bodyAppends += desc.bodyAppends
                 if let descLayout = desc.layout {
                     layout = descLayout
                 }
@@ -322,13 +356,14 @@ extension NutInterpreter {
                 let desc = try run(body: forIn.commands)
                 res += desc.content
                 heads += desc.head
+                bodyAppends += desc.bodyAppends
                 if let descLayout = desc.layout {
                     layout = descLayout
                 }
             }
         }
         data[forIn.value] = prevValue
-        return ViewDescriptor(content: res, head: heads, layout: layout)
+        return ViewDescriptor(content: res, head: heads, bodyAppends: bodyAppends, layout: layout)
     }
 
     // swiftlint:disable function_body_length
@@ -411,6 +446,6 @@ extension NutInterpreter {
         if !ifToken.`else`.isEmpty {
             return try run(body: ifToken.`else`)
         }
-        return ViewDescriptor(content: "", head: [], layout: nil)
+        return ViewDescriptor(content: "", head: "", bodyAppends: "", layout: nil)
     }
 }

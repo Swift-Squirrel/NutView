@@ -46,6 +46,8 @@ protocol Command: Codable {
 
 protocol HeadCommand: Command { }
 
+protocol BodyCommand: Command { }
+
 protocol ExpressionCommand: Command {
     var expression: String { get }
 }
@@ -88,6 +90,12 @@ extension ViewCommands {
     struct Title: HeadCommand {
         let id: CommandType = .title
         let expression: EscapedValue
+        let line: Int
+    }
+
+    struct Body: BodyCommand {
+        let id: CommandType = .body
+        let expression: RawValue
         let line: Int
     }
 
@@ -262,6 +270,8 @@ extension ViewCommands {
                 try container.encode(value)
             case let forCmd as For:
                 try container.encode(forCmd)
+            case let body as Body:
+                try container.encode(body)
             default:
                 let context = EncodingError.Context(codingPath: [],
                                                     debugDescription: "Unknown command \(command)")
@@ -306,6 +316,8 @@ extension ViewCommands {
                     command = try container.decode(Head.self)
                 case .`for`:
                     command = try container.decode(For.self)
+                case .body:
+                    command = try container.decode(Body.self)
                 }
                 commands.append(command)
             }
@@ -460,6 +472,7 @@ extension ViewCommands {
         case subview
         case title
         case head
+        case body
         case `for`
     }
 }

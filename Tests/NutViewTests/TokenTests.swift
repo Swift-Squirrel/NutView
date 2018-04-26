@@ -350,6 +350,34 @@ class TokenTests: XCTestCase {
         XCTAssertEqual(serialized, expected)
     }
 
+    func testHead() {
+        let token = ViewCommands.Head(expression: ViewCommands.RawValue(expression: "\"<title>Tom</title>\"", line: 4), line: 4)
+
+        XCTAssert(token.expression.expression == "\"<title>Tom</title>\"")
+        XCTAssertEqual(token.expression.id, .rawValue)
+        XCTAssert(token.id.rawValue == "head")
+        XCTAssert(token.line == 4)
+        let serialized = JSON(from: token.serialized)
+        let expected = try! JSON(json: """
+            {"id":"head","expression":{"expression":"\\\"<title>Tom</title>\\\"","id":"rawValue","line":4},"line":4}
+            """)
+        XCTAssertEqual(serialized, expected)
+    }
+
+    func testBody() {
+        let token = ViewCommands.Body(expression: ViewCommands.RawValue(expression: "\"<script src=\\\"js.js\\\"></script>\"", line: 6), line: 6)
+
+        XCTAssert(token.expression.expression == "\"<script src=\\\"js.js\\\"></script>\"")
+        XCTAssertEqual(token.expression.id, .rawValue)
+        XCTAssert(token.id.rawValue == "body")
+        XCTAssert(token.line == 6)
+        let serialized = JSON(from: token.serialized)
+        let expected = try! JSON(json: """
+            {"id":"body","expression":{"expression":"\\\"<script src=\\\\\\\"js.js\\\\\\\"></script>\\\"","id":"rawValue","line":6},"line":6}
+            """)
+        XCTAssertEqual(serialized, expected)
+    }
+
     func testForIn() {
         var token = ViewCommands.For(key: "k", value: "v", collection: "dic", line: 52)
 
@@ -442,6 +470,8 @@ class TokenTests: XCTestCase {
 //        ("testElseIf", testElseIf),
         ("testLayout", testLayout),
         ("testSubview", testSubview),
+        ("testHead", testHead),
+        ("testBody", testBody),
         ("testTitle", testTitle),
         ("testForIn", testForIn),
 //        ("testElse", testElse),

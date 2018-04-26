@@ -99,6 +99,7 @@ struct CommandToken: Equatable, CustomStringConvertible {
         case subview = "Subview"
         case layout = "Layout"
         case view = "View"
+        case body = "Body"
     }
     var type: CommandTokenType
     var line: Int

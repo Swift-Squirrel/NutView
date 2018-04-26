@@ -5,6 +5,8 @@
 //  Created by Filip Klembara on 1/27/18.
 //
 
+// swiftlint:disable file_length
+
 class NutParser: NutParserProtocol {
 
     private let name: String
@@ -90,6 +92,9 @@ private extension NutParser {
                 case .head:
                     let head = try parseHead(lexical: lexical, line: line)
                     body.append(head)
+                case .body:
+                    let bodyToken = try parseBody(lexical: lexical, line: line)
+                    body.append(bodyToken)
                 case .escapedValue:
                     let value = try parseEscapedValue(lexical: lexical)
                     body.append(value)
@@ -310,6 +315,10 @@ private extension NutParser {
     func parseTitle(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Title {
         let value = try parseEscapedValue(lexical: lexical)
         return ViewCommands.Title(expression: value, line: line)
+    }
+    func parseBody(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Body {
+        let value = try parseRawValue(lexical: lexical, line: line)
+        return ViewCommands.Body(expression: value, line: line)
     }
     func parseDate(lexical: LexicalAnalysis, line: Int) throws -> ViewCommands.Date {
         _ = try checkNextToken(lexical: lexical, tokenId: .leftParentles)
